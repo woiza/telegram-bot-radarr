@@ -9,6 +9,10 @@ on:
       - 'develop'
     tags:
       - 'v*.*.*'
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE.md'
+      - 'screenshots/**'
   pull_request:
     branches:
       - 'main'
