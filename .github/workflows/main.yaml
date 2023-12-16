@@ -40,7 +40,12 @@ jobs:
 
       - name: Determine Docker tags
         id: tag
-        run: echo ::set-output name=TAG::$(if [[ "${{ github.ref }}" == "refs/tags/v*.*.*" ]]; then echo "latest"; else echo "${{ github.ref }}" | sed -e "s/refs\/heads\///g"; fi)
+        run: |
+          if [[ "${{ github.ref }}" == "refs/tags/v*.*.*" ]]; then
+            echo "latest"
+          else
+            echo "${{ github.ref }}" | sed -e "s/refs\/heads\///g"
+          fi
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -50,4 +55,3 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             woiza/telegram-bot-radarr:${{ steps.tag.outputs.TAG }}
-          labels: ${{ steps.tag.outputs.labels }}
