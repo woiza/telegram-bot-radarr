@@ -36,7 +36,11 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tag-semver: {{raw}}
+          tags: |
+            # minimal
+            type=semver,pattern={{raw}}
+            # latest
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
