@@ -35,7 +35,8 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: woiza/telegram-bot-radarr
+#          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
