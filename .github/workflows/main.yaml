@@ -38,8 +38,8 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
+            tag-custom: latest
+            tag-semver: {{raw}}
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
