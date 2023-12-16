@@ -1,2 +1,4 @@
 /test
 .vscode
+# Go workspace file
+go.work

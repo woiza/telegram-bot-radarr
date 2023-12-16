@@ -11,6 +11,7 @@ on:
       - 'README.md'
       - 'LICENSE'
       - 'screenshots/**'
+      - .gitignore 
   pull_request:
     branches:
       - 'main'
