@@ -5,6 +5,8 @@ This bot draws inspiration from [itsmegb/telegram-radarr-bot](https://github.com
 
 ## Features and Commands
 
+![menu](screenshots/menu.jpg?raw=true "menu")
+
 ### Start Bot
 ![start](screenshots/start.png?raw=true "search movie")
 
