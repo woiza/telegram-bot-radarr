@@ -38,14 +38,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Determine Docker tags
-        id: tag
-        run: |
-          if [[ "${{ github.ref }}" == "refs/tags/v*.*.*" ]]; then
-            echo "latest"
-          else
-            echo "${{ github.ref }}" | sed -e "s/refs\/heads\///g"
-          fi
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -53,5 +50,5 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            woiza/telegram-bot-radarr:${{ steps.tag.outputs.TAG }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
