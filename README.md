@@ -1,5 +1,5 @@
 # Go-Powered Telegram Bot for Radarr Movie Management
-This Telegram bot is specifically designed for movie management through Radarr, a movie collection manager. It enables users to execute a range of commands for searching, adding, deleting, and organizing movies within their Radarr library. Developed in Go, the bot operates with minimal resource consumption, utilizing less than 10 MB of RAM. It maintains a stateless operation and does not persist data to disk, except for error logs. The Docker image size is efficiently kept under 10 MB (compressed), supporting multiple CPU architectures including ARM, ARM64, and x86.
+This Telegram bot is specifically designed for movie management through Radarr, a movie collection manager. It enables users to execute a range of commands for searching, adding, deleting, and organizing movies within their Radarr library. Developed in Go, the bot operates with minimal resource consumption, utilizing less than 10 MB of RAM. It maintains a stateless operation and does not persist data to disk, except for error logs. The Docker image size is efficiently kept under 10 MB (compressed), supporting multiple CPU architectures including `arm32v7`, `arm64v8`, and `x86_64`/`amd64`.
 
 This bot draws inspiration from [itsmegb/telegram-radarr-bot](https://github.com/itsmegb/telegram-radarr-bot/) and is built using [golift/starr](https://github.com/golift/starr/) and [go-telegram-bot-api/telegram-bot-api](https://github.com/go-telegram-bot-api/telegram-bot-api/) without any additional dependencies.
 
@@ -31,12 +31,12 @@ This command clears all previously issued commands and resets the bot's state. I
 ![delete](screenshots/delete.png?raw=true "search movie")
 
 ### Movie Management
-- ``/rss``: Initiate an RSS sync.
-- ``/wanted``: Search for all monitored movies.
-- ``/upcoming``: List upcoming movies in the next 30 days.
-- ``/dl`` or ``/downloaded``: List downloaded movies.
-- ``/library`` or ``/movies``: List all movies in the Radarr library.
-- ``/updateall``: Update metadata and rescan files/folders for all movies.
+- ``/rss``: Initiate an RSS sync
+- ``/wanted``: Search for all monitored movies
+- ``/upcoming``: List upcoming movies in the next 30 days
+- ``/dl`` or ``/downloaded``: List downloaded movies
+- ``/library`` or ``/movies``: List all movies in the Radarr library
+- ``/updateall``: Update metadata and rescan files/folders for all movies
 
 ![management](screenshots/management.png?raw=true "movie management")
 
@@ -47,7 +47,7 @@ This command clears all previously issued commands and resets the bot's state. I
 
 ## Installation and Configuration
 You can either build the bot yourself using the provided source code or utilize the Docker image hosted on GitHub Container Registry and Docker Hub:
-- ghcr.io [woiza/telegram-bot-radarr](https://github.com/woiza/telegram-bot-radarr/pkgs/container/telegram-bot-radarr)
+- GitHub [ghcr.io/woiza/telegram-bot-radarr](https://github.com/woiza/telegram-bot-radarr/pkgs/container/telegram-bot-radarr)
 - Docker Hub [woiza/telegram-bot-radarr](https://hub.docker.com/repository/docker/woiza/telegram-bot-radarr/)
 
 The bot requires configuration through seven mandatory environment variables. For specific details, please refer to the Docker Compose example provided below. However, before running this bot, ensure you have obtained a Telegram bot token and your Radarr API key. Additionally, determine who should have access to this bot (Telegram user ID). You can find detailed instructions on obtaining these credentials in the official documentation:
