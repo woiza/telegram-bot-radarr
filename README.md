@@ -46,8 +46,9 @@ This command clears all previously issued commands and resets the bot's state. I
 
 
 ## Installation and Configuration
-You can either build the bot yourself using the provided source code or utilize the Docker image hosted on Docker Hub:
-- [woiza/telegram-bot-radarr](https://hub.docker.com/repository/docker/woiza/telegram-bot-radarr/)
+You can either build the bot yourself using the provided source code or utilize the Docker image hosted on GitHub Container Registry and Docker Hub:
+- ghcr.io [woiza/telegram-bot-radarr](https://github.com/woiza/telegram-bot-radarr/pkgs/container/telegram-bot-radarr)
+- Docker Hub [woiza/telegram-bot-radarr](https://hub.docker.com/repository/docker/woiza/telegram-bot-radarr/)
 
 The bot requires configuration through seven mandatory environment variables. For specific details, please refer to the Docker Compose example provided below. However, before running this bot, ensure you have obtained a Telegram bot token and your Radarr API key. Additionally, determine who should have access to this bot (Telegram user ID). You can find detailed instructions on obtaining these credentials in the official documentation:
 - [Telegram Bot Token](https://core.telegram.org/bots/tutorial/)
