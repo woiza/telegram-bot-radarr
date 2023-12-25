@@ -10,7 +10,7 @@ import (
 	"golift.io/starr/radarr"
 )
 
-func (b Bot) addMovie(update tgbotapi.Update) bool {
+func (b *Bot) addMovie(update tgbotapi.Update) bool {
 	command := b.AddMovieUserStates[update.CallbackQuery.From.ID]
 
 	if command.movie == nil {

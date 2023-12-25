@@ -25,7 +25,7 @@ type userDeleteMovie struct {
 }
 
 type Bot struct {
-	Config       config.Config
+	Config       *config.Config
 	Bot          *tgbotapi.BotAPI
 	RadarrServer *radarr.Radarr
 
@@ -34,7 +34,7 @@ type Bot struct {
 	DeleteMovieUserStates map[int64]userDeleteMovie
 }
 
-func (b Bot) StartBot() {
+func (b *Bot) StartBot() {
 	b.clearState()
 
 	lastOffset := 0

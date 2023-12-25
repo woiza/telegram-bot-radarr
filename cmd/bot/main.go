@@ -37,7 +37,7 @@ func main() {
 	botConfig := bot.Bot{
 		Bot:          b,
 		RadarrServer: radarrServer,
-		Config:       config,
+		Config:       &config,
 	}
 	botConfig.StartBot()
 }

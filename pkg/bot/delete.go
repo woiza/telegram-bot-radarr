@@ -9,7 +9,7 @@ import (
 	"golift.io/starr/radarr"
 )
 
-func (b Bot) deleteMovie(update tgbotapi.Update) bool {
+func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 	command := b.DeleteMovieUserStates[update.CallbackQuery.From.ID]
 
 	if command.movie == nil {

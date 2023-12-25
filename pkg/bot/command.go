@@ -14,7 +14,7 @@ import (
 	"golift.io/starr/radarr"
 )
 
-func (b Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *radarr.Radarr) {
+func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *radarr.Radarr) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	switch update.Message.Command() {
 
@@ -229,7 +229,7 @@ func (b Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rada
 	}
 }
 
-func (b Bot) sendSearchResults(searchResults map[string]*radarr.Movie, msg *tgbotapi.MessageConfig) {
+func (b *Bot) sendSearchResults(searchResults map[string]*radarr.Movie, msg *tgbotapi.MessageConfig) {
 	// Extract movies from the map
 	movies := make([]*radarr.Movie, 0, len(searchResults))
 	for _, movie := range searchResults {
@@ -263,7 +263,7 @@ func (b Bot) sendSearchResults(searchResults map[string]*radarr.Movie, msg *tgbo
 	b.sendMessage(msg)
 }
 
-func (b Bot) sendUpcoming(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
+func (b *Bot) sendUpcoming(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
 	sort.SliceStable(movies, func(i, j int) bool { return movies[i].Title < movies[j].Title })
 	for i := 0; i < len(movies); i += b.Config.MaxItems {
 		end := i + b.Config.MaxItems
@@ -291,7 +291,7 @@ func (b Bot) sendUpcoming(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, b
 	}
 }
 
-func (b Bot) sendLibrary(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
+func (b *Bot) sendLibrary(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
 	sort.SliceStable(movies, func(i, j int) bool { return movies[i].Title < movies[j].Title })
 
 	for i := 0; i < len(movies); i += b.Config.MaxItems {
@@ -312,7 +312,7 @@ func (b Bot) sendLibrary(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bo
 	}
 }
 
-func (b Bot) sendLibraryDownloaded(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
+func (b *Bot) sendLibraryDownloaded(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
 	sort.SliceStable(movies, func(i, j int) bool { return movies[i].Title < movies[j].Title })
 
 	var filteredMovies []*radarr.Movie
@@ -340,7 +340,7 @@ func (b Bot) sendLibraryDownloaded(movies []*radarr.Movie, msg *tgbotapi.Message
 	}
 }
 
-func (b Bot) sendLibraryAsInlineKeyboard(movies []*radarr.Movie, msg *tgbotapi.MessageConfig) {
+func (b *Bot) sendLibraryAsInlineKeyboard(movies []*radarr.Movie, msg *tgbotapi.MessageConfig) {
 	sort.SliceStable(movies, func(i, j int) bool { return movies[i].Title < movies[j].Title })
 
 	var rows [][]tgbotapi.InlineKeyboardButton
@@ -368,7 +368,7 @@ func (b Bot) sendLibraryAsInlineKeyboard(movies []*radarr.Movie, msg *tgbotapi.M
 	}
 }
 
-func (b Bot) sendMessage(msg tgbotapi.Chattable) {
+func (b *Bot) sendMessage(msg tgbotapi.Chattable) {
 	_, err := b.Bot.Send(msg)
 	if err != nil {
 		log.Println("Error sending message:", err)
