@@ -72,18 +72,12 @@ func (b Bot) addMovie(update tgbotapi.Update) bool {
 					return false
 				}
 			}
-		case "ADDMOVIE_NO":
-			command.confirmation = false
-			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "")
-			command.movie = nil
-			b.AddMovieUserStates[update.CallbackQuery.From.ID] = command
-			b.sendSearchResults(command.searchResults, &msg)
-			return false
 		case "ADDMOVIE_CANCEL":
 			b.clearState()
 			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "All commands have been cleared")
 			b.sendMessage(msg)
 			return false
+		// ADDMOVIE_NO is the same as the default
 		default:
 			command.confirmation = false
 			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "")

@@ -35,6 +35,8 @@ type Bot struct {
 }
 
 func (b Bot) StartBot() {
+	b.clearState()
+
 	lastOffset := 0
 	updateConfig := tgbotapi.NewUpdate(lastOffset + 1)
 	updateConfig.Timeout = 60
@@ -84,7 +86,7 @@ func (b Bot) StartBot() {
 	}
 }
 
-func (b Bot) clearState() {
+func (b *Bot) clearState() {
 	b.UserActiveCommand = make(map[int64]string)
 	b.AddMovieUserStates = make(map[int64]userAddMovie)
 	b.DeleteMovieUserStates = make(map[int64]userDeleteMovie)
