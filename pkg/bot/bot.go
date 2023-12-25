@@ -34,7 +34,7 @@ type Bot struct {
 	DeleteMovieUserStates map[int64]userDeleteMovie
 }
 
-func (b *Bot) StartBot() {
+func (b Bot) StartBot() {
 	b.clearState()
 
 	lastOffset := 0
