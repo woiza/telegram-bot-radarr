@@ -33,11 +33,8 @@ func main() {
 	radarrConfig := starr.New(config.RadarrAPIKey, fmt.Sprintf("%v://%v:%v", config.RadarrProtocol, config.RadarrHostname, config.RadarrPort), 0)
 	// Lets make a radarr server with the default starr Config.
 	radarrServer := radarr.New(radarrConfig)
-
-	botConfig := bot.Bot{
-		Bot:          b,
-		RadarrServer: radarrServer,
-		Config:       &config,
-	}
-	botConfig.StartBot()
+	// Create bot instance
+	botInstance := bot.New(&config, b, radarrServer)
+	// start bot
+	botInstance.StartBot()
 }

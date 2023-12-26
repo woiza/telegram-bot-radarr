@@ -54,7 +54,7 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		b.sendSearchResults(command.searchResults, &msg)
 
 	case "clear", "cancel", "stop":
-		b.clearState()
+		b.clearState(update.CallbackQuery.From.ID)
 		msg.Text = "All commands have been cleared"
 		b.sendMessage(msg)
 

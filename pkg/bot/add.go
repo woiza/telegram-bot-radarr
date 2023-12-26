@@ -38,7 +38,7 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 			command.confirmation = true
 			//movie already in library...
 			if command.movie.ID != 0 {
-				b.clearState()
+				b.clearState(update.CallbackQuery.From.ID)
 				msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Movie already exists in your library.\nAll commands have been cleared.")
 				b.sendMessage(msg)
 				return false
@@ -67,13 +67,13 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 				} else {
 					b.AddMovieUserStates[update.CallbackQuery.From.ID] = command
 					msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, utils.Escape("No quality profile(s) found on your radarr server.\nAll commands have been cleared."))
-					b.clearState()
+					b.clearState(update.CallbackQuery.From.ID)
 					b.sendMessage(msg)
 					return false
 				}
 			}
 		case "ADDMOVIE_CANCEL":
-			b.clearState()
+			b.clearState(update.CallbackQuery.From.ID)
 			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "All commands have been cleared")
 			b.sendMessage(msg)
 			return false
@@ -120,7 +120,7 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 		} else {
 			b.AddMovieUserStates[update.CallbackQuery.From.ID] = command
 			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, utils.Escape("No root folder(s) found on your radarr server.\nAll commands have been cleared."))
-			b.clearState()
+			b.clearState(update.CallbackQuery.From.ID)
 			b.sendMessage(msg)
 			return false
 		}
@@ -164,7 +164,7 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 				Monitor:        "none",
 			}
 		case "MONITORED_CANCEL":
-			b.clearState()
+			b.clearState(update.CallbackQuery.From.ID)
 			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "All commands have been cleared")
 			b.sendMessage(msg)
 			return false

@@ -34,8 +34,24 @@ type Bot struct {
 	DeleteMovieUserStates map[int64]userDeleteMovie
 }
 
-func (b Bot) StartBot() {
-	b.clearState()
+func New(config *config.Config, botAPI *tgbotapi.BotAPI, radarrServer *radarr.Radarr) *Bot {
+	return &Bot{
+		Config:                config,
+		Bot:                   botAPI,
+		RadarrServer:          radarrServer,
+		UserActiveCommand:     make(map[int64]string),
+		AddMovieUserStates:    make(map[int64]userAddMovie),
+		DeleteMovieUserStates: make(map[int64]userDeleteMovie),
+	}
+}
+
+func (b *Bot) StartBot() {
+
+	for userID := range b.Config.AllowedUserIDs {
+		b.UserActiveCommand[userID] = ""
+		b.AddMovieUserStates[userID] = userAddMovie{}
+		b.DeleteMovieUserStates[userID] = userDeleteMovie{}
+	}
 
 	lastOffset := 0
 	updateConfig := tgbotapi.NewUpdate(lastOffset + 1)
@@ -69,7 +85,7 @@ func (b Bot) StartBot() {
 				}
 			default:
 				// Handle unexpected callback queries
-				b.clearState()
+				b.clearState(update.CallbackQuery.From.ID)
 				msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "I am not sure what you mean.\nAll commands have been cleared")
 				b.sendMessage(msg)
 				break
@@ -86,8 +102,8 @@ func (b Bot) StartBot() {
 	}
 }
 
-func (b *Bot) clearState() {
-	b.UserActiveCommand = make(map[int64]string)
-	b.AddMovieUserStates = make(map[int64]userAddMovie)
-	b.DeleteMovieUserStates = make(map[int64]userDeleteMovie)
+func (b *Bot) clearState(userID int64) {
+	delete(b.UserActiveCommand, userID)
+	delete(b.AddMovieUserStates, userID)
+	delete(b.DeleteMovieUserStates, userID)
 }

@@ -64,7 +64,7 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 			b.sendLibraryAsInlineKeyboard(movies, &msg)
 			return false
 		} else if update.CallbackQuery.Data == "DELETEMOVIE_CANCEL" {
-			b.clearState()
+			b.clearState(update.CallbackQuery.From.ID)
 			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "All commands have been cleared")
 			b.sendMessage(msg)
 			return false
