@@ -264,7 +264,9 @@ func (b *Bot) sendSearchResults(searchResults map[string]*radarr.Movie, msg *tgb
 }
 
 func (b *Bot) sendUpcoming(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
-	sort.SliceStable(movies, func(i, j int) bool { return movies[i].Title < movies[j].Title })
+	sort.SliceStable(movies, func(i, j int) bool {
+		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
+	})
 	for i := 0; i < len(movies); i += b.Config.MaxItems {
 		end := i + b.Config.MaxItems
 		if end > len(movies) {
@@ -292,7 +294,9 @@ func (b *Bot) sendUpcoming(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, 
 }
 
 func (b *Bot) sendLibrary(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
-	sort.SliceStable(movies, func(i, j int) bool { return movies[i].Title < movies[j].Title })
+	sort.SliceStable(movies, func(i, j int) bool {
+		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
+	})
 
 	for i := 0; i < len(movies); i += b.Config.MaxItems {
 		end := i + b.Config.MaxItems
@@ -313,7 +317,9 @@ func (b *Bot) sendLibrary(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, b
 }
 
 func (b *Bot) sendLibraryDownloaded(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
-	sort.SliceStable(movies, func(i, j int) bool { return movies[i].Title < movies[j].Title })
+	sort.SliceStable(movies, func(i, j int) bool {
+		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
+	})
 
 	var filteredMovies []*radarr.Movie
 	for _, movie := range movies {
@@ -341,7 +347,9 @@ func (b *Bot) sendLibraryDownloaded(movies []*radarr.Movie, msg *tgbotapi.Messag
 }
 
 func (b *Bot) sendLibraryAsInlineKeyboard(movies []*radarr.Movie, msg *tgbotapi.MessageConfig) {
-	sort.SliceStable(movies, func(i, j int) bool { return movies[i].Title < movies[j].Title })
+	sort.SliceStable(movies, func(i, j int) bool {
+		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
+	})
 
 	var rows [][]tgbotapi.InlineKeyboardButton
 	var row []tgbotapi.InlineKeyboardButton

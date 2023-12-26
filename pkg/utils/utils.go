@@ -53,3 +53,15 @@ func PrepareRootFolders(rootFolders []*radarr.RootFolder) (msgtext string) {
 	}
 	return text.String()
 }
+
+func IgnoreArticles(s string) string {
+	articles := []string{"a", "an", "the", "and", "or", "of"}
+
+	for _, article := range articles {
+		if strings.HasPrefix(strings.ToLower(s), article+" ") {
+			return strings.TrimSpace(s[len(article)+1:]) + ", " + article
+		}
+	}
+
+	return s
+}
