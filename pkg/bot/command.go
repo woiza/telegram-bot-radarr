@@ -15,6 +15,11 @@ import (
 )
 
 func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *radarr.Radarr) {
+	userID, err := getUserID(update)
+	if err != nil {
+		fmt.Printf("Cannot handle command: %v", err)
+		return
+	}
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	switch update.Message.Command() {
 
@@ -49,8 +54,8 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 			tmdbID := strconv.Itoa(int(movie.TmdbID))
 			command.searchResults[tmdbID] = movie
 		}
-		b.AddMovieUserStates[getUserID(update)] = command
-		b.UserActiveCommand[getUserID(update)] = "ADDMOVIE"
+		b.AddMovieUserStates[userID] = command
+		b.UserActiveCommand[userID] = "ADDMOVIE"
 		b.sendSearchResults(command.searchResults, &msg)
 
 	case "clear", "cancel", "stop":
@@ -88,8 +93,8 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 			tmdbID := strconv.Itoa(int(movie.TmdbID))
 			command.library[tmdbID] = movie
 		}
-		b.DeleteMovieUserStates[getUserID(update)] = command
-		b.UserActiveCommand[getUserID(update)] = "DELETEMOVIE"
+		b.DeleteMovieUserStates[userID] = command
+		b.UserActiveCommand[userID] = "DELETEMOVIE"
 		msg.Text = "Which movie would you like to delete?\n"
 		b.sendLibraryAsInlineKeyboard(movies, &msg)
 
@@ -207,7 +212,6 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		b.sendMessage(msg)
 
 	case "getid", "id":
-		userID := getUserID(update)
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Your user ID: %d", userID))
 		b.sendMessage(msg)
 
