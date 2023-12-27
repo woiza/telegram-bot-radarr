@@ -126,10 +126,10 @@ func (b *Bot) clearState(update tgbotapi.Update) {
 func getUserID(update tgbotapi.Update) int64 {
 	var userID int64
 	if update.Message != nil {
-		userID = getUserID(update)
+		userID = update.Message.From.ID
 	}
 	if update.CallbackQuery != nil {
-		userID = getUserID(update)
+		userID = update.CallbackQuery.From.ID
 	}
 
 	return userID
