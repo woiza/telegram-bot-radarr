@@ -96,6 +96,15 @@ func (b *Bot) StartBot() {
 			continue
 		}
 
+		// If no command was passed we will handle a search command.
+		if update.Message.Entities == nil {
+			update.Message.Text = "/q " + update.Message.Text
+			update.Message.Entities = []tgbotapi.MessageEntity{{
+				Type:   "bot_command",
+				Length: 2, // length of the command `/q`
+			}}
+		}
+
 		if update.Message.IsCommand() {
 			b.handleCommand(b.Bot, update, b.RadarrServer)
 		}
