@@ -86,7 +86,7 @@ func (b *Bot) StartBot() {
 				}
 			default:
 				// Handle unexpected callback queries
-				b.clearState(update.CallbackQuery.From.ID)
+				b.clearState(update)
 				msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "I am not sure what you mean.\nAll commands have been cleared")
 				b.sendMessage(msg)
 				break
@@ -112,7 +112,11 @@ func (b *Bot) StartBot() {
 	}
 }
 
-func (b *Bot) clearState(userID int64) {
+func (b *Bot) clearState(update tgbotapi.Update) {
+	userID := update.Message.From.ID
+	if update.CallbackQuery != nil {
+		userID = update.CallbackQuery.From.ID
+	}
 	delete(b.UserActiveCommand, userID)
 	delete(b.AddMovieUserStates, userID)
 	delete(b.DeleteMovieUserStates, userID)
