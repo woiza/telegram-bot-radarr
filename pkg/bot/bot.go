@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"fmt"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -94,6 +95,15 @@ func (b *Bot) StartBot() {
 
 		if update.Message == nil { // ignore any non-Message Updates
 			continue
+		}
+
+		// If no command was passed we will handle a search command.
+		if update.Message.Entities == nil {
+			update.Message.Text = fmt.Sprintf("/q %s", update.Message.Text)
+			update.Message.Entities = []tgbotapi.MessageEntity{{
+				Type:   "bot_command",
+				Length: 2, // length of the command `/q`
+			}}
 		}
 
 		if update.Message.IsCommand() {
