@@ -10,7 +10,7 @@ import (
 )
 
 func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
-	command := b.DeleteMovieUserStates[update.CallbackQuery.From.ID]
+	command := b.DeleteMovieUserStates[getUserID(update)]
 
 	if command.movie == nil {
 		movie := command.library[update.CallbackQuery.Data]
@@ -27,7 +27,7 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 		msg.DisableWebPagePreview = false
 		msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(buttons...)
 
-		b.DeleteMovieUserStates[update.CallbackQuery.From.ID] = command
+		b.DeleteMovieUserStates[getUserID(update)] = command
 		b.sendMessage(msg)
 		return false
 	}
@@ -58,7 +58,7 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 			for _, value := range library {
 				movies = append(movies, value)
 			}
-			b.DeleteMovieUserStates[update.CallbackQuery.From.ID] = command
+			b.DeleteMovieUserStates[getUserID(update)] = command
 			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "")
 			msg.Text = "Which movie would you like to delete?\n"
 			b.sendLibraryAsInlineKeyboard(movies, &msg)

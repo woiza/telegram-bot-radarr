@@ -67,7 +67,7 @@ func (b *Bot) StartBot() {
 		lastOffset = update.UpdateID
 
 		if update.Message != nil {
-			if !b.Config.AllowedUserIDs[update.Message.From.ID] {
+			if !b.Config.AllowedUserIDs[getUserID(update)] {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Access denied. You are not authorized.")
 				b.sendMessage(msg)
 				continue
@@ -75,7 +75,7 @@ func (b *Bot) StartBot() {
 		}
 
 		if update.CallbackQuery != nil {
-			switch b.UserActiveCommand[update.CallbackQuery.From.ID] {
+			switch b.UserActiveCommand[getUserID(update)] {
 			case "ADDMOVIE":
 				if !b.addMovie(update) {
 					continue
@@ -113,11 +113,24 @@ func (b *Bot) StartBot() {
 }
 
 func (b *Bot) clearState(update tgbotapi.Update) {
-	userID := update.Message.From.ID
-	if update.CallbackQuery != nil {
-		userID = update.CallbackQuery.From.ID
+	userID := getUserID(update)
+	if userID == 0 {
+		fmt.Printf("Cannot clear state: user ID not found")
+		return
 	}
 	delete(b.UserActiveCommand, userID)
 	delete(b.AddMovieUserStates, userID)
 	delete(b.DeleteMovieUserStates, userID)
+}
+
+func getUserID(update tgbotapi.Update) int64 {
+	var userID int64
+	if update.Message != nil {
+		userID = getUserID(update)
+	}
+	if update.CallbackQuery != nil {
+		userID = getUserID(update)
+	}
+
+	return userID
 }

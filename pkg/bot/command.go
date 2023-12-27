@@ -49,8 +49,8 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 			tmdbID := strconv.Itoa(int(movie.TmdbID))
 			command.searchResults[tmdbID] = movie
 		}
-		b.AddMovieUserStates[update.Message.From.ID] = command
-		b.UserActiveCommand[update.Message.From.ID] = "ADDMOVIE"
+		b.AddMovieUserStates[getUserID(update)] = command
+		b.UserActiveCommand[getUserID(update)] = "ADDMOVIE"
 		b.sendSearchResults(command.searchResults, &msg)
 
 	case "clear", "cancel", "stop":
@@ -88,8 +88,8 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 			tmdbID := strconv.Itoa(int(movie.TmdbID))
 			command.library[tmdbID] = movie
 		}
-		b.DeleteMovieUserStates[update.Message.From.ID] = command
-		b.UserActiveCommand[update.Message.From.ID] = "DELETEMOVIE"
+		b.DeleteMovieUserStates[getUserID(update)] = command
+		b.UserActiveCommand[getUserID(update)] = "DELETEMOVIE"
 		msg.Text = "Which movie would you like to delete?\n"
 		b.sendLibraryAsInlineKeyboard(movies, &msg)
 
@@ -207,7 +207,7 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		b.sendMessage(msg)
 
 	case "getid", "id":
-		userID := update.Message.From.ID
+		userID := getUserID(update)
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Your user ID: %d", userID))
 		b.sendMessage(msg)
 
