@@ -11,7 +11,12 @@ import (
 )
 
 func (b *Bot) addMovie(update tgbotapi.Update) bool {
-	command := b.AddMovieUserStates[update.CallbackQuery.From.ID]
+	userID, err := getUserID(update)
+	if err != nil {
+		fmt.Printf("Cannot add movie: %v", err)
+		return false
+	}
+	command := b.AddMovieUserStates[userID]
 
 	if command.movie == nil {
 		movie := command.searchResults[update.CallbackQuery.Data]
@@ -29,7 +34,7 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 		msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(buttons...)
 
 		b.sendMessage(msg)
-		b.AddMovieUserStates[update.CallbackQuery.From.ID] = command
+		b.AddMovieUserStates[userID] = command
 		return false
 	}
 	if !command.confirmation {
@@ -58,14 +63,14 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 					}
 					msg.Text = "Please choose your quality profile"
 					msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(buttons...)
-					b.AddMovieUserStates[update.CallbackQuery.From.ID] = command
+					b.AddMovieUserStates[userID] = command
 					b.sendMessage(msg)
 					return false
 				} else if len(profiles) == 1 {
 					profileID := profiles[0].ID
 					update.CallbackQuery.Data = strconv.FormatInt(profileID, 10)
 				} else {
-					b.AddMovieUserStates[update.CallbackQuery.From.ID] = command
+					b.AddMovieUserStates[userID] = command
 					msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, utils.Escape("No quality profile(s) found on your radarr server.\nAll commands have been cleared."))
 					b.clearState(update)
 					b.sendMessage(msg)
@@ -82,7 +87,7 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 			command.confirmation = false
 			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "")
 			command.movie = nil
-			b.AddMovieUserStates[update.CallbackQuery.From.ID] = command
+			b.AddMovieUserStates[userID] = command
 			b.sendSearchResults(command.searchResults, &msg)
 			return false
 		}
@@ -109,7 +114,7 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 				buttons[i] = tgbotapi.NewInlineKeyboardRow(button)
 			}
 
-			b.AddMovieUserStates[update.CallbackQuery.From.ID] = command
+			b.AddMovieUserStates[userID] = command
 			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, utils.Escape(fmt.Sprintf("Please choose the root folder for '%v'\n", command.movie.Title)))
 			msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(buttons...)
 			b.sendMessage(msg)
@@ -118,7 +123,7 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 			path := rootFolders[0].Path
 			update.CallbackQuery.Data = path
 		} else {
-			b.AddMovieUserStates[update.CallbackQuery.From.ID] = command
+			b.AddMovieUserStates[userID] = command
 			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, utils.Escape("No root folder(s) found on your radarr server.\nAll commands have been cleared."))
 			b.clearState(update)
 			b.sendMessage(msg)
@@ -136,7 +141,7 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 		buttons[2] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add unmonitored", "MONITORED_UNMON"))
 		buttons[3] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Cancel, clear command", "MONITORED_CANCEL"))
 
-		b.AddMovieUserStates[update.CallbackQuery.From.ID] = command
+		b.AddMovieUserStates[userID] = command
 		msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(buttons...)
 		b.sendMessage(msg)
 		return false
