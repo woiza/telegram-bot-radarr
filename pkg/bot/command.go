@@ -84,11 +84,9 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 			b.sendMessage(msg)
 			break
 		}
-
 		command := userDeleteMovie{
 			library: make(map[string]*radarr.Movie, len(movies)),
 		}
-
 		for _, movie := range movies {
 			tmdbID := strconv.Itoa(int(movie.TmdbID))
 			command.library[tmdbID] = movie
@@ -113,8 +111,6 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		}
 		if len(upcoming) == 0 {
 			msg.Text = "no upcoming releases in the next 30 days"
-			msg.ParseMode = "MarkdownV2"
-			msg.DisableWebPagePreview = true
 			b.sendMessage(msg)
 			break
 		}
@@ -128,88 +124,117 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 			b.sendMessage(msg)
 			break
 		}
+		if len(movies) == 0 {
+			msg.Text = "no movies in library"
+			b.sendMessage(msg)
+			break
+		}
 		b.sendMovies(movies, &msg, bot)
 
-	case "ondisk":
+	case "ondisk", "dl":
 		movies, err := r.GetMovie(0)
-		var onDisk []*radarr.Movie
-		for _, movie := range movies {
-			if movie.SizeOnDisk > 0 {
-				onDisk = append(onDisk, movie)
-			}
-		}
 		if err != nil {
 			msg.Text = err.Error()
 			fmt.Println(err)
 			b.sendMessage(msg)
 			break
 		}
-		b.sendMovies(onDisk, &msg, bot)
+		var filtered []*radarr.Movie
+		for _, movie := range movies {
+			if movie.SizeOnDisk > 0 {
+				filtered = append(filtered, movie)
+			}
+		}
+		if len(filtered) == 0 {
+			msg.Text = "no movies on disk"
+			b.sendMessage(msg)
+			break
+		}
+		b.sendMovies(filtered, &msg, bot)
 
 	case "missing":
 		movies, err := r.GetMovie(0)
-		var missing []*radarr.Movie
-		for _, movie := range movies {
-			if movie.SizeOnDisk == 0 && movie.Monitored {
-				missing = append(missing, movie)
-			}
-		}
 		if err != nil {
 			msg.Text = err.Error()
 			fmt.Println(err)
 			b.sendMessage(msg)
 			break
 		}
-		b.sendMovies(missing, &msg, bot)
+		var filtered []*radarr.Movie
+		for _, movie := range movies {
+			if movie.SizeOnDisk == 0 && movie.Monitored {
+				filtered = append(filtered, movie)
+			}
+		}
+		if len(filtered) == 0 {
+			msg.Text = "no missing movies in library"
+			b.sendMessage(msg)
+			break
+		}
+		b.sendMovies(filtered, &msg, bot)
 
 	case "wanted":
 		movies, err := r.GetMovie(0)
-		var missing []*radarr.Movie
-		for _, movie := range movies {
-			if movie.SizeOnDisk == 0 && movie.Monitored && movie.IsAvailable {
-				missing = append(missing, movie)
-			}
-		}
 		if err != nil {
 			msg.Text = err.Error()
 			fmt.Println(err)
 			b.sendMessage(msg)
 			break
 		}
-		b.sendMovies(missing, &msg, bot)
+		var filtered []*radarr.Movie
+		for _, movie := range movies {
+			if movie.SizeOnDisk == 0 && movie.Monitored && movie.IsAvailable {
+				filtered = append(filtered, movie)
+			}
+		}
+		if len(filtered) == 0 {
+			msg.Text = "no wanted movies in library"
+			b.sendMessage(msg)
+			break
+		}
+		b.sendMovies(filtered, &msg, bot)
 
 	case "monitored":
 		movies, err := r.GetMovie(0)
-		var monitored []*radarr.Movie
-		for _, movie := range movies {
-			if movie.Monitored {
-				monitored = append(monitored, movie)
-			}
-		}
 		if err != nil {
 			msg.Text = err.Error()
 			fmt.Println(err)
 			b.sendMessage(msg)
 			break
 		}
-		b.sendMovies(monitored, &msg, bot)
+		var filtered []*radarr.Movie
+		for _, movie := range movies {
+			if movie.Monitored {
+				filtered = append(filtered, movie)
+			}
+		}
+		if len(filtered) == 0 {
+			msg.Text = "no monitored movies in library"
+			b.sendMessage(msg)
+			break
+		}
+		b.sendMovies(filtered, &msg, bot)
 
 	case "unmonitored":
 		movies, err := r.GetMovie(0)
-		var unmonitored []*radarr.Movie
-		for _, movie := range movies {
-			if !movie.Monitored {
-				unmonitored = append(unmonitored, movie)
-			}
-		}
 		if err != nil {
 			msg.Text = err.Error()
 			fmt.Println(err)
 			b.sendMessage(msg)
 			break
 		}
-		// All unmonitored movies without size information
-		b.sendMovies(unmonitored, &msg, bot)
+		var filtered []*radarr.Movie
+		for _, movie := range movies {
+			if !movie.Monitored {
+				filtered = append(filtered, movie)
+			}
+		}
+		if len(filtered) == 0 {
+			msg.Text = "no unmonitored movies in library"
+			b.sendMessage(msg)
+			break
+		}
+		b.sendMovies(filtered, &msg, bot)
 
 	case "rss", "RSS":
 		command := radarr.CommandRequest{
@@ -290,7 +315,7 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		msg.Text += "/q [movie] - searches a movie \n"
 		msg.Text += "/clear \t\t - deletes all sent commands\n"
 		msg.Text += "/free \t\t\t\t - lists free disk space \n"
-		msg.Text += "/delete\t - delete a movie\n"
+		msg.Text += "/delete\t - deletes a movie\n"
 		msg.Text += "/up\t\t\t\t\t\t\t - lists upcoming movies in the next 30 days\n"
 		msg.Text += "/library - lists all movies\n"
 		msg.Text += "/ondisk - lists movies on disk\n"
