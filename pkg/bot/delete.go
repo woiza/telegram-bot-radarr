@@ -66,7 +66,7 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 			b.DeleteMovieUserStates[userID] = command
 			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "")
 			msg.Text = "Which movie would you like to delete?\n"
-			b.sendLibraryAsInlineKeyboard(movies, &msg)
+			b.sendMoviesAsInlineKeyboard(movies, &msg)
 			return false
 		} else if update.CallbackQuery.Data == "DELETEMOVIE_CANCEL" {
 			b.clearState(update)

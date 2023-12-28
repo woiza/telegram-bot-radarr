@@ -96,7 +96,120 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		b.DeleteMovieUserStates[userID] = command
 		b.UserActiveCommand[userID] = "DELETEMOVIE"
 		msg.Text = "Which movie would you like to delete?\n"
-		b.sendLibraryAsInlineKeyboard(movies, &msg)
+		b.sendMoviesAsInlineKeyboard(movies, &msg)
+
+	case "up", "upcoming":
+		calendar := radarr.Calendar{
+			Start:       time.Now(),
+			End:         time.Now().AddDate(0, 0, 30), // 30 days
+			Unmonitored: *starr.True(),
+		}
+		upcoming, err := r.GetCalendar(calendar)
+		if err != nil {
+			msg.Text = err.Error()
+			fmt.Println(err)
+			b.sendMessage(msg)
+			break
+		}
+		if len(upcoming) == 0 {
+			msg.Text = "no upcoming releases in the next 30 days"
+			msg.ParseMode = "MarkdownV2"
+			msg.DisableWebPagePreview = true
+			b.sendMessage(msg)
+			break
+		}
+		b.sendUpcoming(upcoming, &msg, bot)
+
+	case "movies", "library":
+		movies, err := r.GetMovie(0)
+		if err != nil {
+			msg.Text = err.Error()
+			fmt.Println(err)
+			b.sendMessage(msg)
+			break
+		}
+		b.sendMovies(movies, &msg, bot)
+
+	case "ondisk":
+		movies, err := r.GetMovie(0)
+		var onDisk []*radarr.Movie
+		for _, movie := range movies {
+			if movie.SizeOnDisk > 0 {
+				onDisk = append(onDisk, movie)
+			}
+		}
+		if err != nil {
+			msg.Text = err.Error()
+			fmt.Println(err)
+			b.sendMessage(msg)
+			break
+		}
+		b.sendMovies(onDisk, &msg, bot)
+
+	case "missing":
+		movies, err := r.GetMovie(0)
+		var missing []*radarr.Movie
+		for _, movie := range movies {
+			if movie.SizeOnDisk == 0 && movie.Monitored {
+				missing = append(missing, movie)
+			}
+		}
+		if err != nil {
+			msg.Text = err.Error()
+			fmt.Println(err)
+			b.sendMessage(msg)
+			break
+		}
+		b.sendMovies(missing, &msg, bot)
+
+	case "wanted":
+		movies, err := r.GetMovie(0)
+		var missing []*radarr.Movie
+		for _, movie := range movies {
+			if movie.SizeOnDisk == 0 && movie.Monitored && movie.IsAvailable {
+				missing = append(missing, movie)
+			}
+		}
+		if err != nil {
+			msg.Text = err.Error()
+			fmt.Println(err)
+			b.sendMessage(msg)
+			break
+		}
+		b.sendMovies(missing, &msg, bot)
+
+	case "monitored":
+		movies, err := r.GetMovie(0)
+		var monitored []*radarr.Movie
+		for _, movie := range movies {
+			if movie.Monitored {
+				monitored = append(monitored, movie)
+			}
+		}
+		if err != nil {
+			msg.Text = err.Error()
+			fmt.Println(err)
+			b.sendMessage(msg)
+			break
+		}
+		b.sendMovies(monitored, &msg, bot)
+
+	case "unmonitored":
+		movies, err := r.GetMovie(0)
+		var unmonitored []*radarr.Movie
+		for _, movie := range movies {
+			if !movie.Monitored {
+				unmonitored = append(unmonitored, movie)
+			}
+		}
+		if err != nil {
+			msg.Text = err.Error()
+			fmt.Println(err)
+			b.sendMessage(msg)
+			break
+		}
+		// All unmonitored movies without size information
+		b.sendMovies(unmonitored, &msg, bot)
 
 	case "rss", "RSS":
 		command := radarr.CommandRequest{
@@ -113,7 +226,7 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		msg.Text = "RSS sync started"
 		b.sendMessage(msg)
 
-	case "wanted":
+	case "searchmonitored":
 		movies, err := r.GetMovie(0)
 		if err != nil {
 			msg.Text = err.Error()
@@ -140,50 +253,6 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		}
 		msg.Text = "Search for monitored movies started"
 		b.sendMessage(msg)
-
-	case "up", "upcoming":
-		calendar := radarr.Calendar{
-			Start:       time.Now(),
-			End:         time.Now().AddDate(0, 0, 30), // 30 days
-			Unmonitored: *starr.True(),
-		}
-		upcoming, err := r.GetCalendar(calendar)
-		if err != nil {
-			msg.Text = err.Error()
-			fmt.Println(err)
-			b.sendMessage(msg)
-			break
-		}
-		if len(upcoming) == 0 {
-			msg.Text = "no upcoming releases in the next 30 days"
-			msg.ParseMode = "MarkdownV2"
-			msg.DisableWebPagePreview = true
-			b.sendMessage(msg)
-			break
-		}
-		b.sendUpcoming(upcoming, &msg, bot)
-
-	case "dl", "download", "downloads", "downloaded", "available":
-		movies, err := r.GetMovie(0)
-		if err != nil {
-			msg.Text = err.Error()
-			fmt.Println(err)
-			b.sendMessage(msg)
-			break
-		}
-		// Only downloaded movies with size information
-		b.sendLibraryDownloaded(movies, &msg, bot)
-
-	case "movies", "library":
-		movies, err := r.GetMovie(0)
-		if err != nil {
-			msg.Text = err.Error()
-			fmt.Println(err)
-			b.sendMessage(msg)
-			break
-		}
-		// All movies without size information
-		b.sendLibrary(movies, &msg, bot)
 
 	case "updateAll", "updateall":
 		movies, err := r.GetMovie(0)
@@ -219,16 +288,20 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		msg.Text = fmt.Sprintf("Hello %v!\n", update.Message.From)
 		msg.Text += "Here's a list of commands at your disposal:\n\n"
 		msg.Text += "/q [movie] - searches a movie \n"
-		msg.Text += "/clear \t\t - deletes all previously sent commands\n"
-		msg.Text += "/free \t\t\t\t - lists the free space of your disks\n"
-		msg.Text += "/delete - delete a movie - WARNING: can be large\n"
-		msg.Text += "/rss \t\t\t\t   - perform a RSS sync\n"
-		msg.Text += "/wanted - searches all monitored movies\n"
-		msg.Text += "/upcoming - lists upcoming movies in the next 30 days\n"
-		msg.Text += "/dl \t\t\t\t\t\t\t - lists downloaded movies - WARNING: can be large\n"
-		msg.Text += "/library - lists all movies - WARNING: can be large\n"
-		msg.Text += "/updateall - update metadata and rescan files/folders\n"
-		msg.Text += "/id \t\t\t\t\t\t\t - shows your Telegram user ID"
+		msg.Text += "/clear \t\t - deletes all sent commands\n"
+		msg.Text += "/free \t\t\t\t - lists free disk space \n"
+		msg.Text += "/delete\t - delete a movie\n"
+		msg.Text += "/up\t\t\t\t\t\t\t - lists upcoming movies in the next 30 days\n"
+		msg.Text += "/library - lists all movies\n"
+		msg.Text += "/ondisk - lists movies on disk\n"
+		msg.Text += "/missing - lists missing movies\n"
+		msg.Text += "/wanted - lists wanted movies\n"
+		msg.Text += "/monitored - lists monitored movies\n"
+		msg.Text += "/unmonitored - lists unmonitored movies\n"
+		msg.Text += "/rss - performs a RSS sync\n"
+		msg.Text += "/searchmonitored - searches all monitored movies\n"
+		msg.Text += "/updateall - updates metadata and rescans files/folders\n"
+		msg.Text += "/id - shows your Telegram user ID"
 		b.sendMessage(msg)
 	}
 }
@@ -297,7 +370,7 @@ func (b *Bot) sendUpcoming(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, 
 	}
 }
 
-func (b *Bot) sendLibrary(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
+func (b *Bot) sendMovies(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
 	sort.SliceStable(movies, func(i, j int) bool {
 		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
 	})
@@ -320,37 +393,7 @@ func (b *Bot) sendLibrary(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, b
 	}
 }
 
-func (b *Bot) sendLibraryDownloaded(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
-	sort.SliceStable(movies, func(i, j int) bool {
-		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
-	})
-
-	var filteredMovies []*radarr.Movie
-	for _, movie := range movies {
-		if movie.SizeOnDisk > 0 {
-			filteredMovies = append(filteredMovies, movie)
-		}
-	}
-
-	for i := 0; i < len(filteredMovies); i += b.Config.MaxItems {
-		end := i + b.Config.MaxItems
-		if end > len(filteredMovies) {
-			end = len(filteredMovies)
-		}
-
-		var text strings.Builder
-		for _, movie := range filteredMovies[i:end] {
-			text.WriteString(fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_ \\- _%v_\n", utils.Escape(movie.Title), movie.ImdbID, movie.Year, utils.Escape(utils.ByteCountSI(int64(movie.SizeOnDisk)))))
-		}
-
-		msg.Text = text.String()
-		msg.ParseMode = "MarkdownV2"
-		msg.DisableWebPagePreview = true
-		b.sendMessage(msg)
-	}
-}
-
-func (b *Bot) sendLibraryAsInlineKeyboard(movies []*radarr.Movie, msg *tgbotapi.MessageConfig) {
+func (b *Bot) sendMoviesAsInlineKeyboard(movies []*radarr.Movie, msg *tgbotapi.MessageConfig) {
 	sort.SliceStable(movies, func(i, j int) bool {
 		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
 	})
