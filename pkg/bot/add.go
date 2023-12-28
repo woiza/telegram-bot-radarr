@@ -135,11 +135,13 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 		command.path = &command.movie.Path
 
 		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "How would you like to add the movie?\n")
-		buttons := make([][]tgbotapi.InlineKeyboardButton, 4)
-		buttons[0] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add monitored + search now", "MONITORED_MONSEA"))
-		buttons[1] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add monitored", "MONITORED_MON"))
-		buttons[2] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add unmonitored", "MONITORED_UNMON"))
-		buttons[3] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Cancel, clear command", "MONITORED_CANCEL"))
+		buttons := make([][]tgbotapi.InlineKeyboardButton, 6)
+		buttons[0] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add movie monitored + search now", "MOVIE_MONSEA"))
+		buttons[1] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add movie monitored", "MOVIE_MON"))
+		buttons[2] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add movie unmonitored", "MOVIE_UNMON"))
+		buttons[3] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add collection monitored + search now", "COLLECTION_MONSEA"))
+		buttons[4] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add collection monitored", "COLLECTION_MON"))
+		buttons[5] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Cancel, clear command", "MONITORED_CANCEL"))
 
 		b.AddMovieUserStates[userID] = command
 		msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(buttons...)
@@ -149,24 +151,42 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 	if command.addStatus == nil {
 		var addMovieInput radarr.AddMovieInput
 		var addOptions radarr.AddMovieOptions
+		var collection bool
 		switch update.CallbackQuery.Data {
-		case "MONITORED_MONSEA":
+		case "MOVIE_MONSEA":
+			collection = false
 			addMovieInput.Monitored = *starr.True()
 			addOptions = radarr.AddMovieOptions{
 				SearchForMovie: *starr.True(),
 				Monitor:        "movieOnly",
 			}
-		case "MONITORED_MON":
+		case "MOVIE_MON":
+			collection = false
 			addMovieInput.Monitored = *starr.True()
 			addOptions = radarr.AddMovieOptions{
 				SearchForMovie: *starr.False(),
 				Monitor:        "movieOnly",
 			}
-		case "MONITORED_UNMON":
+		case "MOVIE_UNMON":
+			collection = false
 			addMovieInput.Monitored = *starr.False()
 			addOptions = radarr.AddMovieOptions{
 				SearchForMovie: *starr.False(),
 				Monitor:        "none",
+			}
+		case "COLLECTION_MONSEA":
+			collection = true
+			addMovieInput.Monitored = *starr.True()
+			addOptions = radarr.AddMovieOptions{
+				SearchForMovie: *starr.True(),
+				Monitor:        "movieAndCollection",
+			}
+		case "COLLECTION_MON":
+			collection = true
+			addMovieInput.Monitored = *starr.True()
+			addOptions = radarr.AddMovieOptions{
+				SearchForMovie: *starr.False(),
+				Monitor:        "movieAndCollection",
 			}
 		case "MONITORED_CANCEL":
 			b.clearState(update)
@@ -197,10 +217,12 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 			return false
 		}
 
-		movieTitle := movies[0].Title
-		command.searchResults = nil
-		command.movie = nil
-		msg.Text = fmt.Sprintf("Movie '%v' added\n", movieTitle)
+		if collection {
+			msg.Text = fmt.Sprintf("Collection '%v' added\n", movies[0].Title)
+		} else {
+			msg.Text = fmt.Sprintf("Movie '%v' added\n", movies[0].Title)
+		}
+		b.clearState(update)
 		b.sendMessage(msg)
 	}
 
