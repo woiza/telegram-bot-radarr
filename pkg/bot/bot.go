@@ -5,6 +5,7 @@ import (
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"golift.io/starr"
 	"golift.io/starr/radarr"
 
 	"github.com/woiza/telegram-bot-radarr/pkg/config"
@@ -16,7 +17,10 @@ type userAddMovie struct {
 	confirmation  bool
 	profileID     *int64
 	path          *string
-	addStatus     *string
+	allTags       []*starr.Tag
+	selectedTags  []*starr.Tag
+	tagDone       bool
+	movieAdded    bool
 }
 
 type userDeleteMovie struct {
