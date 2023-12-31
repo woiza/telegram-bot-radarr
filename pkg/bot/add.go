@@ -147,7 +147,7 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 		}
 
 		if len(tags) == 0 {
-			update.CallbackQuery.Data = "DONE"
+			update.CallbackQuery.Data = "DONE_ADDING_TAGS"
 			command.tagDone = true
 		}
 
