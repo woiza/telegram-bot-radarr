@@ -2,7 +2,7 @@ package bot
 
 import (
 	"fmt"
-	"time"
+	"sync"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"golift.io/starr"
@@ -30,109 +30,113 @@ type userDeleteMovie struct {
 }
 
 type Bot struct {
-	Config       *config.Config
-	Bot          *tgbotapi.BotAPI
-	RadarrServer *radarr.Radarr
-
-	UserActiveCommand     map[int64]string
-	AddMovieUserStates    map[int64]userAddMovie
-	DeleteMovieUserStates map[int64]userDeleteMovie
+	Config            *config.Config
+	Bot               *tgbotapi.BotAPI
+	RadarrServer      *radarr.Radarr
+	ActiveCommand     map[int64]string
+	AddMovieStates    map[int64]*userAddMovie
+	DeleteMovieStates map[int64]*userDeleteMovie
+	// Mutexes for synchronization
+	muActiveCommand     sync.Mutex
+	muAddMovieStates    sync.Mutex
+	muDeleteMovieStates sync.Mutex
 }
 
 func New(config *config.Config, botAPI *tgbotapi.BotAPI, radarrServer *radarr.Radarr) *Bot {
 	return &Bot{
-		Config:                config,
-		Bot:                   botAPI,
-		RadarrServer:          radarrServer,
-		UserActiveCommand:     make(map[int64]string),
-		AddMovieUserStates:    make(map[int64]userAddMovie),
-		DeleteMovieUserStates: make(map[int64]userDeleteMovie),
+		Config:            config,
+		Bot:               botAPI,
+		RadarrServer:      radarrServer,
+		ActiveCommand:     make(map[int64]string),
+		AddMovieStates:    make(map[int64]*userAddMovie),
+		DeleteMovieStates: make(map[int64]*userDeleteMovie),
 	}
 }
 
-func (b *Bot) StartBot() {
+func (b *Bot) HandleUpdates(updates <-chan tgbotapi.Update) {
+	for update := range updates {
+		b.HandleUpdate(update)
+	}
+}
 
-	for userID := range b.Config.AllowedUserIDs {
-		b.UserActiveCommand[userID] = ""
-		b.AddMovieUserStates[userID] = userAddMovie{}
-		b.DeleteMovieUserStates[userID] = userDeleteMovie{}
+func (b *Bot) HandleUpdate(update tgbotapi.Update) {
+	userID, err := b.getUserID(update)
+	if err != nil {
+		fmt.Printf("Cannot handle update: %v", err)
+		return
 	}
 
-	lastOffset := 0
-	updateConfig := tgbotapi.NewUpdate(lastOffset + 1)
-	updateConfig.Timeout = 60
+	// Safely access ActiveCommand map using mutex
+	// b.muActiveCommand.Lock()
+	// defer b.muActiveCommand.Unlock()
 
-	updatesChannel := b.Bot.GetUpdatesChan(updateConfig)
+	if update.Message != nil && !b.Config.AllowedUserIDs[userID] {
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Access denied. You are not authorized.")
+		b.sendMessage(msg)
+		return
+	}
 
-	time.Sleep(time.Millisecond * 500)
-	updatesChannel.Clear()
-
-	for update := range updatesChannel {
-		lastOffset = update.UpdateID
-
-		userID, err := getUserID(update)
-		if err != nil {
-			fmt.Printf("Cannot handle update: %v", err)
-		}
-
-		if update.Message != nil {
-			if !b.Config.AllowedUserIDs[userID] {
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Access denied. You are not authorized.")
-				b.sendMessage(msg)
-				continue
+	if update.CallbackQuery != nil {
+		switch b.ActiveCommand[userID] {
+		case "ADDMOVIE":
+			if !b.addMovie(update) {
+				return
 			}
-		}
-
-		if update.CallbackQuery != nil {
-			switch b.UserActiveCommand[userID] {
-			case "ADDMOVIE":
-				if !b.addMovie(update) {
-					continue
-				}
-			case "DELETEMOVIE":
-				if !b.deleteMovie(update) {
-					continue
-				}
-			default:
-				// Handle unexpected callback queries
-				b.clearState(update)
-				msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "I am not sure what you mean.\nAll commands have been cleared")
-				b.sendMessage(msg)
-				break
+		case "DELETEMOVIE":
+			if !b.deleteMovie(update) {
+				return
 			}
+		default:
+			b.clearState(update)
+			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "I am not sure what you mean.\nAll commands have been cleared")
+			b.sendMessage(msg)
+			break
 		}
+	}
 
-		if update.Message == nil { // ignore any non-Message Updates
-			continue
-		}
+	if update.Message == nil { // ignore any non-Message Updates
+		return
+	}
 
-		// If no command was passed we will handle a search command.
-		if update.Message.Entities == nil {
-			update.Message.Text = fmt.Sprintf("/q %s", update.Message.Text)
-			update.Message.Entities = []tgbotapi.MessageEntity{{
-				Type:   "bot_command",
-				Length: 2, // length of the command `/q`
-			}}
-		}
+	// If no command was passed, handle a search command.
+	if update.Message.Entities == nil {
+		update.Message.Text = fmt.Sprintf("/q %s", update.Message.Text)
+		update.Message.Entities = []tgbotapi.MessageEntity{{
+			Type:   "bot_command",
+			Length: 2, // length of the command `/q`
+		}}
+	}
 
-		if update.Message.IsCommand() {
-			b.handleCommand(b.Bot, update, b.RadarrServer)
-		}
+	if update.Message.IsCommand() {
+		b.handleCommand(b.Bot, update, b.RadarrServer)
 	}
 }
 
 func (b *Bot) clearState(update tgbotapi.Update) {
-	userID, err := getUserID(update)
+	userID, err := b.getUserID(update)
 	if err != nil {
 		fmt.Printf("Cannot clear state: %v", err)
 		return
 	}
-	delete(b.UserActiveCommand, userID)
-	delete(b.AddMovieUserStates, userID)
-	delete(b.DeleteMovieUserStates, userID)
+
+	// Safely clear states using mutexes
+	b.muActiveCommand.Lock()
+	defer b.muActiveCommand.Unlock()
+
+	delete(b.ActiveCommand, userID)
+
+	b.muAddMovieStates.Lock()
+	defer b.muAddMovieStates.Unlock()
+
+	delete(b.AddMovieStates, userID)
+
+	b.muDeleteMovieStates.Lock()
+	defer b.muDeleteMovieStates.Unlock()
+
+	delete(b.DeleteMovieStates, userID)
 }
 
-func getUserID(update tgbotapi.Update) (int64, error) {
+func (b *Bot) getUserID(update tgbotapi.Update) (int64, error) {
 	var userID int64
 	if update.Message != nil {
 		userID = update.Message.From.ID
@@ -143,6 +147,44 @@ func getUserID(update tgbotapi.Update) (int64, error) {
 	if userID == 0 {
 		return 0, fmt.Errorf("no user ID found in Message and CallbackQuery")
 	}
-
 	return userID, nil
+}
+
+func (b *Bot) getActiveCommand(userID int64) (string, bool) {
+	b.muActiveCommand.Lock()
+	defer b.muActiveCommand.Unlock()
+	cmd, exists := b.ActiveCommand[userID]
+	return cmd, exists
+}
+
+func (b *Bot) setActiveCommand(userID int64, command string) {
+	b.muActiveCommand.Lock()
+	defer b.muActiveCommand.Unlock()
+	b.ActiveCommand[userID] = command
+}
+
+func (b *Bot) getAddMovieState(userID int64) (*userAddMovie, bool) {
+	b.muAddMovieStates.Lock()
+	defer b.muAddMovieStates.Unlock()
+	state, exists := b.AddMovieStates[userID]
+	return state, exists
+}
+
+func (b *Bot) setAddMovieState(userID int64, state *userAddMovie) {
+	b.muAddMovieStates.Lock()
+	defer b.muAddMovieStates.Unlock()
+	b.AddMovieStates[userID] = state
+}
+
+func (b *Bot) getDeleteMovieState(userID int64) (*userDeleteMovie, bool) {
+	b.muDeleteMovieStates.Lock()
+	defer b.muDeleteMovieStates.Unlock()
+	state, exists := b.DeleteMovieStates[userID]
+	return state, exists
+}
+
+func (b *Bot) setDeleteMovieState(userID int64, state *userDeleteMovie) {
+	b.muDeleteMovieStates.Lock()
+	defer b.muDeleteMovieStates.Unlock()
+	b.DeleteMovieStates[userID] = state
 }
