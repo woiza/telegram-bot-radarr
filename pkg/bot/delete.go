@@ -166,7 +166,11 @@ func (b *Bot) handleDeleteConfirmationNo(update tgbotapi.Update, command *userDe
 
 func (b *Bot) handleDeleteConfirmationCancel(update tgbotapi.Update) bool {
 	b.clearState(update)
-	msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "All commands have been cleared")
-	b.sendMessage(msg)
+	editMsg := tgbotapi.NewEditMessageText(
+		update.CallbackQuery.From.ID,
+		update.CallbackQuery.Message.MessageID,
+		"All commands have been cleared",
+	)
+	b.sendMessage(editMsg)
 	return false
 }
