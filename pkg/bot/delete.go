@@ -149,7 +149,7 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 }
 
 func (b *Bot) processMovieSelectionForDelete(update tgbotapi.Update, command *userDeleteMovie) bool {
-	// if called in processDeleteCommand update has no CallbachQuery and command.movie is set inprocessDeleteCommand
+	// if called in processDeleteCommand update has no CallbackQuery and command.movie is set in inprocessDeleteCommand
 	if command.movie == nil {
 		movie := command.library[update.CallbackQuery.Data]
 		command.movie = movie
