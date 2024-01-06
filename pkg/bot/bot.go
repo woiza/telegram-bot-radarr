@@ -24,9 +24,12 @@ type userAddMovie struct {
 }
 
 type userDeleteMovie struct {
-	library      map[string]*radarr.Movie
-	movie        *radarr.Movie
-	confirmation bool
+	library                map[string]*radarr.Movie
+	searchResultsInLibrary map[string]*radarr.Movie
+	movie                  *radarr.Movie
+	confirmation           bool
+	chatID                 int64
+	messageID              int
 }
 
 type Bot struct {
