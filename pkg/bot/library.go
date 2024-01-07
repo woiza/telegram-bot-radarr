@@ -28,39 +28,14 @@ func (b *Bot) processLibraryCommand(update tgbotapi.Update, userID int64, r *rad
 		tmdbID := strconv.Itoa(int(movie.TmdbID))
 		command.library[tmdbID] = movie
 	}
+
+	command.filtered = nil
 	command.chatID = message.Chat.ID
 	command.messageID = message.MessageID
 
-	keyboard := [][]tgbotapi.InlineKeyboardButton{
-		{
-			tgbotapi.NewInlineKeyboardButtonData("Monitored Movies", "LIBRARY_MONITORED"),
-			tgbotapi.NewInlineKeyboardButtonData("Unmonitored Movies", "LIBRARY_UNMONITORED"),
-		},
-		{
-			tgbotapi.NewInlineKeyboardButtonData("Wanted Movies", "LIBRARY_WANTED"),
-			tgbotapi.NewInlineKeyboardButtonData("Missing Movies", "LIBRARY_MISSING"),
-		},
-		{
-			tgbotapi.NewInlineKeyboardButtonData("Cut-Off unmet Movies", "LIBRARY_CUTOFFUNMET"),
-			tgbotapi.NewInlineKeyboardButtonData("Movies on Disk", "LIBRARY_ONDISK"),
-		},
-		{
-			tgbotapi.NewInlineKeyboardButtonData("All Movies", "LIBRARY_ALL"),
-			tgbotapi.NewInlineKeyboardButtonData("Cancel - clear command", "LIBRARY_CANCEL"),
-		},
-	}
-
-	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
-		message.Chat.ID,
-		message.MessageID,
-		"Select an option:",
-		tgbotapi.InlineKeyboardMarkup{InlineKeyboard: keyboard},
-	)
-
 	b.setLibraryState(userID, &command)
-	b.sendMessage(editMsg)
+	b.showLibraryMenu(update, &command)
 	return
-
 }
 
 func (b *Bot) library(update tgbotapi.Update) bool {
@@ -83,6 +58,35 @@ func (b *Bot) library(update tgbotapi.Update) bool {
 	default:
 		return true
 	}
+}
+
+func (b *Bot) showLibraryMenu(update tgbotapi.Update, command *userLibrary) bool {
+	keyboard := [][]tgbotapi.InlineKeyboardButton{
+		{
+			tgbotapi.NewInlineKeyboardButtonData("Monitored Movies", "LIBRARY_MONITORED"),
+			tgbotapi.NewInlineKeyboardButtonData("Unmonitored Movies", "LIBRARY_UNMONITORED"),
+		},
+		{
+			tgbotapi.NewInlineKeyboardButtonData("Wanted Movies", "LIBRARY_WANTED"),
+			tgbotapi.NewInlineKeyboardButtonData("Missing Movies", "LIBRARY_MISSING"),
+		},
+		{
+			tgbotapi.NewInlineKeyboardButtonData("Movies on Disk", "LIBRARY_ONDISK"),
+			tgbotapi.NewInlineKeyboardButtonData("All Movies", "LIBRARY_ALL"),
+		},
+		{
+			tgbotapi.NewInlineKeyboardButtonData("Cancel - clear command", "LIBRARY_CANCEL"),
+		},
+	}
+
+	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
+		command.chatID,
+		command.messageID,
+		"Select an option:",
+		tgbotapi.InlineKeyboardMarkup{InlineKeyboard: keyboard},
+	)
+	b.sendMessage(editMsg)
+	return false
 }
 
 func (b *Bot) processLibrary(update tgbotapi.Update, command *userLibrary) bool {
@@ -118,9 +122,6 @@ func (b *Bot) processLibrary(update tgbotapi.Update, command *userLibrary) bool 
 			}
 		}
 		responseText = "Wanted movies:"
-	case "LIBRARY_CUTOFFUNMET":
-		// Handle watched movies logic
-		// ...
 	case "LIBRARY_ONDISK":
 		for _, movie := range command.library {
 			if movie.SizeOnDisk > 0 {
@@ -129,20 +130,35 @@ func (b *Bot) processLibrary(update tgbotapi.Update, command *userLibrary) bool 
 		}
 		responseText = "Movies on disk:"
 	case "LIBRARY_ALL":
-		// Handle all movies logic
-		// ...
+		for _, movie := range command.library {
+			filtered = append(filtered, movie)
+		}
+		responseText = "All Movies:"
 	case "LIBRARY_CANCEL":
-		// Handle cancel logic
-		// ...
+		b.clearState(update)
+		editMsg := tgbotapi.NewEditMessageText(
+			command.chatID,
+			command.messageID,
+			"All commands have been cleared",
+		)
+		b.sendMessage(editMsg)
+		return false
+	case "LIBRARY_MENU":
+		return b.showLibraryMenu(update, command)
 	default:
-		// Handle invalid command
-		responseText = "Invalid command"
+		command.movie = nil
+		b.setLibraryState(command.chatID, command)
+		return false
 	}
 
 	if len(filtered) == 0 {
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "No filtered movies in library")
 		b.clearState(update)
-		b.sendMessage(msg)
+		editMsg := tgbotapi.NewEditMessageText(
+			command.chatID,
+			command.messageID,
+			"No (filtered) movies in library. All commands have been cleared",
+		)
+		b.sendMessage(editMsg)
 		return false
 	}
 
@@ -151,6 +167,9 @@ func (b *Bot) processLibrary(update tgbotapi.Update, command *userLibrary) bool 
 	})
 
 	inlineKeyboard := b.getMoviesAsInlineKeyboard(filtered)
+	var row []tgbotapi.InlineKeyboardButton
+	row = append(row, tgbotapi.NewInlineKeyboardButtonData("Go back - Show library menu", "LIBRARY_MENU"))
+	inlineKeyboard = append(inlineKeyboard, row)
 	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
 		command.chatID,
 		command.messageID,
@@ -159,6 +178,12 @@ func (b *Bot) processLibrary(update tgbotapi.Update, command *userLibrary) bool 
 			InlineKeyboard: inlineKeyboard,
 		},
 	)
+	command.filtered = make(map[string]*radarr.Movie, len(filtered))
+	for _, movie := range filtered {
+		tmdbID := strconv.Itoa(int(movie.TmdbID))
+		command.filtered[tmdbID] = movie
+	}
+	b.setLibraryState(command.chatID, command)
 	b.sendMessage(editMsg)
 	return false
 

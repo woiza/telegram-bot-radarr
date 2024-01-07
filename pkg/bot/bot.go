@@ -34,6 +34,7 @@ type userDeleteMovie struct {
 
 type userLibrary struct {
 	library   map[string]*radarr.Movie
+	filtered  map[string]*radarr.Movie
 	movie     *radarr.Movie
 	chatID    int64
 	messageID int
