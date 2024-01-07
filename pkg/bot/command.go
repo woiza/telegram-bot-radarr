@@ -104,19 +104,21 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		b.sendUpcoming(upcoming, &msg, bot)
 
 	case "movies", "library":
-		movies, err := r.GetMovie(0)
-		if err != nil {
-			msg.Text = err.Error()
-			fmt.Println(err)
-			b.sendMessage(msg)
-			break
-		}
-		if len(movies) == 0 {
-			msg.Text = "no movies in library"
-			b.sendMessage(msg)
-			break
-		}
-		b.sendMovies(movies, &msg, bot)
+		b.ActiveCommand[userID] = "LIBRARY"
+		b.processLibraryCommand(update, userID, r)
+		// movies, err := r.GetMovie(0)
+		// if err != nil {
+		// 	msg.Text = err.Error()
+		// 	fmt.Println(err)
+		// 	b.sendMessage(msg)
+		// 	break
+		// }
+		// if len(movies) == 0 {
+		// 	msg.Text = "no movies in library"
+		// 	b.sendMessage(msg)
+		// 	break
+		// }
+		// b.sendMovies(movies, &msg, bot)
 
 	case "ondisk", "dl":
 		movies, err := r.GetMovie(0)

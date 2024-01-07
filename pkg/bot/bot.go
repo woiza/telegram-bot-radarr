@@ -32,6 +32,13 @@ type userDeleteMovie struct {
 	messageID              int
 }
 
+type userLibrary struct {
+	library   map[string]*radarr.Movie
+	movie     *radarr.Movie
+	chatID    int64
+	messageID int
+}
+
 type Bot struct {
 	Config            *config.Config
 	Bot               *tgbotapi.BotAPI
@@ -39,10 +46,12 @@ type Bot struct {
 	ActiveCommand     map[int64]string
 	AddMovieStates    map[int64]*userAddMovie
 	DeleteMovieStates map[int64]*userDeleteMovie
+	LibraryStates     map[int64]*userLibrary
 	// Mutexes for synchronization
 	muActiveCommand     sync.Mutex
 	muAddMovieStates    sync.Mutex
 	muDeleteMovieStates sync.Mutex
+	muLibraryStates     sync.Mutex
 }
 
 func New(config *config.Config, botAPI *tgbotapi.BotAPI, radarrServer *radarr.Radarr) *Bot {
@@ -53,6 +62,7 @@ func New(config *config.Config, botAPI *tgbotapi.BotAPI, radarrServer *radarr.Ra
 		ActiveCommand:     make(map[int64]string),
 		AddMovieStates:    make(map[int64]*userAddMovie),
 		DeleteMovieStates: make(map[int64]*userDeleteMovie),
+		LibraryStates:     make(map[int64]*userLibrary),
 	}
 }
 
@@ -87,6 +97,10 @@ func (b *Bot) HandleUpdate(update tgbotapi.Update) {
 			}
 		case "DELETEMOVIE":
 			if !b.deleteMovie(update) {
+				return
+			}
+		case "LIBRARY":
+			if !b.library(update) {
 				return
 			}
 		default:
@@ -137,6 +151,11 @@ func (b *Bot) clearState(update tgbotapi.Update) {
 	defer b.muDeleteMovieStates.Unlock()
 
 	delete(b.DeleteMovieStates, userID)
+
+	b.muLibraryStates.Lock()
+	defer b.muLibraryStates.Unlock()
+
+	delete(b.LibraryStates, userID)
 }
 
 func (b *Bot) getUserID(update tgbotapi.Update) (int64, error) {
@@ -190,4 +209,17 @@ func (b *Bot) setDeleteMovieState(userID int64, state *userDeleteMovie) {
 	b.muDeleteMovieStates.Lock()
 	defer b.muDeleteMovieStates.Unlock()
 	b.DeleteMovieStates[userID] = state
+}
+
+func (b *Bot) getLibraryState(userID int64) (*userLibrary, bool) {
+	b.muLibraryStates.Lock()
+	defer b.muLibraryStates.Unlock()
+	state, exists := b.LibraryStates[userID]
+	return state, exists
+}
+
+func (b *Bot) setLibraryState(userID int64, state *userLibrary) {
+	b.muLibraryStates.Lock()
+	defer b.muLibraryStates.Unlock()
+	b.LibraryStates[userID] = state
 }
