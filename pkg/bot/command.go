@@ -15,12 +15,15 @@ import (
 )
 
 func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *radarr.Radarr) {
-	userID, err := getUserID(update)
+
+	userID, err := b.getUserID(update)
 	if err != nil {
 		fmt.Printf("Cannot handle command: %v", err)
 		return
 	}
+
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+
 	switch update.Message.Command() {
 
 	case "q", "query", "add", "Q", "Query", "Add":
@@ -54,8 +57,8 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 			tmdbID := strconv.Itoa(int(movie.TmdbID))
 			command.searchResults[tmdbID] = movie
 		}
-		b.AddMovieUserStates[userID] = command
-		b.UserActiveCommand[userID] = "ADDMOVIE"
+		b.AddMovieStates[userID] = &command
+		b.ActiveCommand[userID] = "ADDMOVIE"
 		b.sendSearchResults(command.searchResults, &msg)
 
 	case "clear", "cancel", "stop":
@@ -76,25 +79,9 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		msg.DisableWebPagePreview = true
 		b.sendMessage(msg)
 
-	case "delete", "remove":
-		movies, err := r.GetMovie(0)
-		if err != nil {
-			msg.Text = err.Error()
-			fmt.Println(err)
-			b.sendMessage(msg)
-			break
-		}
-		command := userDeleteMovie{
-			library: make(map[string]*radarr.Movie, len(movies)),
-		}
-		for _, movie := range movies {
-			tmdbID := strconv.Itoa(int(movie.TmdbID))
-			command.library[tmdbID] = movie
-		}
-		b.DeleteMovieUserStates[userID] = command
-		b.UserActiveCommand[userID] = "DELETEMOVIE"
-		msg.Text = "Which movie would you like to delete?\n"
-		b.sendMoviesAsInlineKeyboard(movies, &msg)
+	case "delete", "remove", "Delete", "Remove":
+		b.ActiveCommand[userID] = "DELETEMOVIE"
+		b.processDeleteCommand(update, userID, r)
 
 	case "up", "upcoming":
 		calendar := radarr.Calendar{
@@ -418,7 +405,7 @@ func (b *Bot) sendMovies(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bo
 	}
 }
 
-func (b *Bot) sendMoviesAsInlineKeyboard(movies []*radarr.Movie, msg *tgbotapi.MessageConfig) {
+func (b *Bot) sendMoviesAsInlineKeyboard(movies []*radarr.Movie, msg *tgbotapi.EditMessageTextConfig) {
 	sort.SliceStable(movies, func(i, j int) bool {
 		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
 	})
@@ -429,7 +416,7 @@ func (b *Bot) sendMoviesAsInlineKeyboard(movies []*radarr.Movie, msg *tgbotapi.M
 	for i, movie := range movies {
 		if i > 0 && i%b.Config.MaxItems == 0 {
 			inlineKeyboard := tgbotapi.NewInlineKeyboardMarkup(rows...)
-			msg.ReplyMarkup = inlineKeyboard
+			msg.ReplyMarkup = &inlineKeyboard
 			b.sendMessage(msg)
 			rows = nil
 		}
@@ -443,14 +430,30 @@ func (b *Bot) sendMoviesAsInlineKeyboard(movies []*radarr.Movie, msg *tgbotapi.M
 
 	if len(rows) > 0 {
 		inlineKeyboard := tgbotapi.NewInlineKeyboardMarkup(rows...)
-		msg.ReplyMarkup = inlineKeyboard
+		msg.ReplyMarkup = &inlineKeyboard
 		b.sendMessage(msg)
 	}
 }
 
-func (b *Bot) sendMessage(msg tgbotapi.Chattable) {
-	_, err := b.Bot.Send(msg)
+func (b *Bot) getMoviesAsInlineKeyboard(movies []*radarr.Movie) [][]tgbotapi.InlineKeyboardButton {
+
+	var inlineKeyboard [][]tgbotapi.InlineKeyboardButton
+
+	for _, movie := range movies {
+		button := tgbotapi.NewInlineKeyboardButtonData(
+			fmt.Sprintf("%v - %v", movie.Title, movie.Year),
+			strconv.Itoa(int(movie.TmdbID)),
+		)
+		row := []tgbotapi.InlineKeyboardButton{button}
+		inlineKeyboard = append(inlineKeyboard, row)
+	}
+
+	return inlineKeyboard
+}
+func (b *Bot) sendMessage(msg tgbotapi.Chattable) (tgbotapi.Message, error) {
+	message, err := b.Bot.Send(msg)
 	if err != nil {
 		log.Println("Error sending message:", err)
 	}
+	return message, err
 }
