@@ -8,6 +8,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/woiza/telegram-bot-radarr/pkg/utils"
+	"golift.io/starr"
 	"golift.io/starr/radarr"
 )
 
@@ -116,44 +117,34 @@ func (b *Bot) processLibrary(update tgbotapi.Update, command *userLibrary) bool 
 
 	switch update.CallbackQuery.Data {
 	case "LIBRARY_MONITORED":
-		for _, movie := range command.library {
-			if movie.Monitored {
-				filtered = append(filtered, movie)
-			}
-		}
+		filtered = filterMovies(command.library, func(movie *radarr.Movie) bool {
+			return movie.Monitored
+		})
 		responseText = "Monitored movies:"
 	case "LIBRARY_UNMONITORED":
-		for _, movie := range command.library {
-			if !movie.Monitored {
-				filtered = append(filtered, movie)
-			}
-		}
+		filtered = filterMovies(command.library, func(movie *radarr.Movie) bool {
+			return !movie.Monitored
+		})
 		responseText = "Unmonitored movies:"
 	case "LIBRARY_MISSING":
-		for _, movie := range command.library {
-			if movie.SizeOnDisk == 0 && movie.Monitored {
-				filtered = append(filtered, movie)
-			}
-		}
+		filtered = filterMovies(command.library, func(movie *radarr.Movie) bool {
+			return movie.SizeOnDisk == 0 && movie.Monitored
+		})
 		responseText = "Missing movies:"
 	case "LIBRARY_WANTED":
-		for _, movie := range command.library {
-			if movie.SizeOnDisk == 0 && movie.Monitored && movie.IsAvailable {
-				filtered = append(filtered, movie)
-			}
-		}
+		filtered = filterMovies(command.library, func(movie *radarr.Movie) bool {
+			return movie.SizeOnDisk == 0 && movie.Monitored && movie.IsAvailable
+		})
 		responseText = "Wanted movies:"
 	case "LIBRARY_ONDISK":
-		for _, movie := range command.library {
-			if movie.SizeOnDisk > 0 {
-				filtered = append(filtered, movie)
-			}
-		}
+		filtered = filterMovies(command.library, func(movie *radarr.Movie) bool {
+			return movie.SizeOnDisk > 0
+		})
 		responseText = "Movies on disk:"
 	case "LIBRARY_ALL":
-		for _, movie := range command.library {
-			filtered = append(filtered, movie)
-		}
+		filtered = filterMovies(command.library, func(movie *radarr.Movie) bool {
+			return true // All movies included
+		})
 		responseText = "All Movies:"
 	case "LIBRARY_CANCEL":
 		b.clearState(update)
@@ -214,8 +205,14 @@ func (b *Bot) processLibrary(update tgbotapi.Update, command *userLibrary) bool 
 }
 
 func (b *Bot) processLibraryMovieSelection(update tgbotapi.Update, command *userLibrary) bool {
-	movie := command.library[update.CallbackQuery.Data]
-	command.movie = movie
+	var movie *radarr.Movie
+	if command.movie == nil {
+		movie = command.library[update.CallbackQuery.Data]
+		command.movie = movie
+
+	} else {
+		movie = command.movie
+	}
 
 	var monitorIcon string
 	if movie.Monitored {
@@ -297,21 +294,20 @@ func (b *Bot) processLibraryMovieSelection(update tgbotapi.Update, command *user
 
 func (b *Bot) processLibraryMovieConfig(update tgbotapi.Update, command *userLibrary) bool {
 	switch update.CallbackQuery.Data {
-	// case "LIBRARY_MOVIE_MONITOR":
-	// 	return b.handleLibraryMovieMonitor(update, command)
+	case "LIBRARY_MOVIE_MONITOR":
+		return b.handleLibraryMovieMonitor(update, command)
+	case "LIBRARY_MOVIE_UNMONITOR":
+		return b.handleLibraryMovieUnMonitor(update, command)
 	// case "LIBRARY_MOVIE_MONITOR_SEARCHNOW":
 	// 	return b.handleLibraryMovieMonitorAndSearchNow(update, command)
 	// case "LIBRARY_MOVIE_EDIT":
 	// 	return b.handleLibraryMovieEdit(update, command)
 	case "LIBRARY_MOVIE_GOBACK":
-		//update.CallbackQuery.Data = "LIBRARY_MENU"
 		return b.handleLibraryMovieGoBack(update, command)
 	case "LIBRARY_MOVIE_CANCEL":
-		b.clearState(update)
+		b.handleLibraryMovieCancel(update, command)
 		return false
 	default:
-		command.confirmation = false
-		command.movie = nil
 		b.setLibraryState(command.chatID, command)
 		return false
 	}
@@ -323,6 +319,16 @@ func (b *Bot) processLibraryMovieConfig(update tgbotapi.Update, command *userLib
 // 	return false
 // }
 
+func filterMovies(library map[string]*radarr.Movie, filterCondition func(movie *radarr.Movie) bool) []*radarr.Movie {
+	var filtered []*radarr.Movie
+	for _, movie := range library {
+		if filterCondition(movie) {
+			filtered = append(filtered, movie)
+		}
+	}
+	return filtered
+}
+
 func findQualityProfileByID(qualityProfiles []*radarr.QualityProfile, qualityProfileID int64) *radarr.QualityProfile {
 	for _, profile := range qualityProfiles {
 		if profile.ID == qualityProfileID {
@@ -330,6 +336,40 @@ func findQualityProfileByID(qualityProfiles []*radarr.QualityProfile, qualityPro
 		}
 	}
 	return nil
+}
+
+func (b *Bot) handleLibraryMovieMonitor(update tgbotapi.Update, command *userLibrary) bool {
+	bulkEdit := radarr.BulkEdit{
+		MovieIDs:  []int64{command.movie.ID},
+		Monitored: starr.True(),
+	}
+
+	_, err := b.RadarrServer.EditMovies(&bulkEdit)
+	if err != nil {
+		msg := tgbotapi.NewMessage(command.chatID, err.Error())
+		b.sendMessage(msg)
+		return false
+	}
+	command.movie.Monitored = true
+	b.setLibraryState(command.chatID, command)
+	return b.processLibraryMovieSelection(update, command)
+}
+
+func (b *Bot) handleLibraryMovieUnMonitor(update tgbotapi.Update, command *userLibrary) bool {
+	bulkEdit := radarr.BulkEdit{
+		MovieIDs:  []int64{command.movie.ID},
+		Monitored: starr.False(),
+	}
+
+	_, err := b.RadarrServer.EditMovies(&bulkEdit)
+	if err != nil {
+		msg := tgbotapi.NewMessage(command.chatID, err.Error())
+		b.sendMessage(msg)
+		return false
+	}
+	command.movie.Monitored = false
+	b.setLibraryState(command.chatID, command)
+	return b.processLibraryMovieSelection(update, command)
 }
 
 func (b *Bot) handleLibraryMovieGoBack(update tgbotapi.Update, command *userLibrary) bool {
@@ -358,6 +398,17 @@ func (b *Bot) handleLibraryMovieGoBack(update tgbotapi.Update, command *userLibr
 		},
 	)
 	b.setLibraryState(command.chatID, command)
+	b.sendMessage(editMsg)
+	return false
+}
+
+func (b *Bot) handleLibraryMovieCancel(update tgbotapi.Update, command *userLibrary) bool {
+	b.clearState(update)
+	editMsg := tgbotapi.NewEditMessageText(
+		command.chatID,
+		command.messageID,
+		"All commands have been cleared",
+	)
 	b.sendMessage(editMsg)
 	return false
 }
