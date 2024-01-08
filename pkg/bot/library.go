@@ -51,7 +51,9 @@ func (b *Bot) library(update tgbotapi.Update) bool {
 	}
 
 	switch {
-	case command.movie == nil:
+	case command.filtered == nil:
+		return b.processLibrary(update, command)
+	case update.CallbackQuery.Data == "LIBRARY_MENU":
 		return b.processLibrary(update, command)
 	// case !command.confirmation:
 	// 	return b.processConfirmationForDelete(update, command)
@@ -144,9 +146,12 @@ func (b *Bot) processLibrary(update tgbotapi.Update, command *userLibrary) bool 
 		b.sendMessage(editMsg)
 		return false
 	case "LIBRARY_MENU":
-		return b.showLibraryMenu(update, command)
+		command.filtered = nil
+		b.setLibraryState(command.chatID, command)
+		b.showLibraryMenu(update, command)
+		return false
 	default:
-		command.movie = nil
+		command.filtered = nil
 		b.setLibraryState(command.chatID, command)
 		return false
 	}
