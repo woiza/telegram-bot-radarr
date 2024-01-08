@@ -33,11 +33,14 @@ type userDeleteMovie struct {
 }
 
 type userLibrary struct {
-	library   map[string]*radarr.Movie
-	filtered  map[string]*radarr.Movie
-	movie     *radarr.Movie
-	chatID    int64
-	messageID int
+	library         map[string]*radarr.Movie
+	filtered        map[string]*radarr.Movie
+	qualityProfiles []*radarr.QualityProfile
+	allTags         []*starr.Tag
+	movie           *radarr.Movie
+	confirmation    bool
+	chatID          int64
+	messageID       int
 }
 
 type Bot struct {
