@@ -83,18 +83,16 @@ func (b *Bot) HandleUpdate(update tgbotapi.Update) {
 		return
 	}
 
-	// Safely access ActiveCommand map using mutex
-	// b.muActiveCommand.Lock()
-	// defer b.muActiveCommand.Unlock()
-
 	if update.Message != nil && !b.Config.AllowedUserIDs[userID] {
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Access denied. You are not authorized.")
 		b.sendMessage(msg)
 		return
 	}
 
+	activeCommand, _ := b.getActiveCommand(userID)
+
 	if update.CallbackQuery != nil {
-		switch b.ActiveCommand[userID] {
+		switch activeCommand {
 		case "ADDMOVIE":
 			if !b.addMovie(update) {
 				return

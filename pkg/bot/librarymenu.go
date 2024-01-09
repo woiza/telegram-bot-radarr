@@ -197,7 +197,7 @@ func (b *Bot) showLibraryMenuFiltered(update tgbotapi.Update, command *userLibra
 	)
 
 	b.setLibraryState(command.chatID, command)
-	b.ActiveCommand[command.chatID] = "LIBRARYFILTERED"
+	b.setActiveCommand(command.chatID, "LIBRARYFILTERED")
 	b.sendMessage(editMsg)
 	return false
 }

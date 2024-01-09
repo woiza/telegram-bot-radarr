@@ -24,12 +24,12 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 	switch update.CallbackQuery.Data {
 	case "LIBRARY_MOVIE_GOBACK":
 		command.movie = nil
-		b.ActiveCommand[userID] = "LIBRARYFILTERED"
+		b.setActiveCommand(userID, "LIBRARYFILTERED")
 		b.setLibraryState(command.chatID, command)
 		return b.showLibraryMenuFiltered(update, command)
 	case "LIBRARY_FILTERED_GOBACK":
 		command.filter = ""
-		b.ActiveCommand[userID] = "LIBRARYMENU"
+		b.setActiveCommand(userID, "LIBRARYMENU")
 		b.setLibraryState(command.chatID, command)
 		return b.showLibraryMenu(update, command)
 	case "LIBRARY_MOVIE_MONITOR":

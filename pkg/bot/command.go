@@ -59,7 +59,7 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 			command.searchResults[tmdbID] = movie
 		}
 		b.AddMovieStates[userID] = &command
-		b.ActiveCommand[userID] = "ADDMOVIE"
+		b.setActiveCommand(userID, "ADDMOVIE")
 		b.sendSearchResults(command.searchResults, &msg)
 
 	case "clear", "cancel", "stop":
@@ -81,7 +81,7 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		b.sendMessage(msg)
 
 	case "delete", "remove", "Delete", "Remove":
-		b.ActiveCommand[userID] = "DELETEMOVIE"
+		b.setActiveCommand(userID, "DELETEMOVIE")
 		b.processDeleteCommand(update, userID, r)
 
 	case "up", "upcoming":
@@ -105,7 +105,7 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		b.sendUpcoming(upcoming, &msg, bot)
 
 	case "movies", "library":
-		b.ActiveCommand[userID] = "LIBRARYMENU"
+		b.setActiveCommand(userID, "LIBRARYMENU")
 		b.processLibraryCommand(update, userID, r)
 
 	case "rss", "RSS":
