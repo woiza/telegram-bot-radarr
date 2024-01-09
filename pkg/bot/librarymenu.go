@@ -78,12 +78,12 @@ func (b *Bot) libraryMenu(update tgbotapi.Update) bool {
 func (b *Bot) showLibraryMenu(update tgbotapi.Update, command *userLibrary) bool {
 	keyboard := [][]tgbotapi.InlineKeyboardButton{
 		{
-			tgbotapi.NewInlineKeyboardButtonData("Monitored Movies", "FILTER_MONITORED"),
-			tgbotapi.NewInlineKeyboardButtonData("Unmonitored Movies", "FILTER_UNMONITORED"),
-		},
-		{
 			tgbotapi.NewInlineKeyboardButtonData("Missing Movies", "FILTER_MISSING"),
 			tgbotapi.NewInlineKeyboardButtonData("Wanted Movies", "FILTER_WANTED"),
+		},
+		{
+			tgbotapi.NewInlineKeyboardButtonData("Monitored Movies", "FILTER_MONITORED"),
+			tgbotapi.NewInlineKeyboardButtonData("Unmonitored Movies", "FILTER_UNMONITORED"),
 		},
 		{
 			tgbotapi.NewInlineKeyboardButtonData("Movies on Disk", "FILTER_ONDISK"),
