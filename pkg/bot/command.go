@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"sort"
@@ -104,7 +105,7 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		b.sendUpcoming(upcoming, &msg, bot)
 
 	case "movies", "library":
-		b.ActiveCommand[userID] = "LIBRARY"
+		b.ActiveCommand[userID] = "LIBRARYMENU"
 		b.processLibraryCommand(update, userID, r)
 
 	case "rss", "RSS":
@@ -178,6 +179,18 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 
 	case "getid", "id":
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Your user ID: %d", userID))
+		b.sendMessage(msg)
+
+	case "system", "System", "systemstatus", "Systemstatus":
+		status, err := r.GetSystemStatus()
+		if err != nil {
+			msg.Text = err.Error()
+			fmt.Println(err)
+			b.sendMessage(msg)
+			break
+		}
+		message := prettyPrint(status)
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, message)
 		b.sendMessage(msg)
 
 	default:
@@ -340,4 +353,9 @@ func (b *Bot) sendMessage(msg tgbotapi.Chattable) (tgbotapi.Message, error) {
 		log.Println("Error sending message:", err)
 	}
 	return message, err
+}
+
+func prettyPrint(i interface{}) string {
+	s, _ := json.MarshalIndent(i, "", "\t")
+	return string(s)
 }

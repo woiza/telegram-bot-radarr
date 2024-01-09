@@ -34,7 +34,7 @@ type userDeleteMovie struct {
 
 type userLibrary struct {
 	library         map[string]*radarr.Movie
-	filtered        map[string]*radarr.Movie
+	filter          string
 	qualityProfiles []*radarr.QualityProfile
 	allTags         []*starr.Tag
 	movie           *radarr.Movie
@@ -103,8 +103,12 @@ func (b *Bot) HandleUpdate(update tgbotapi.Update) {
 			if !b.deleteMovie(update) {
 				return
 			}
-		case "LIBRARY":
-			if !b.library(update) {
+		case "LIBRARYMENU":
+			if !b.libraryMenu(update) {
+				return
+			}
+		case "LIBRARYFILTERED":
+			if !b.libraryFiltered(update) {
 				return
 			}
 		default:
