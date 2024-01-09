@@ -33,7 +33,7 @@ type userDeleteMovie struct {
 }
 
 type userLibrary struct {
-	library         map[string]*radarr.Movie
+	libraryFiltered map[string]*radarr.Movie
 	filter          string
 	qualityProfiles []*radarr.QualityProfile
 	allTags         []*starr.Tag

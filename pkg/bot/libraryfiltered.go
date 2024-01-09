@@ -2,7 +2,6 @@ package bot
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -45,7 +44,7 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrary) bool {
 	var movie *radarr.Movie
 	if command.movie == nil {
-		movie = command.library[update.CallbackQuery.Data]
+		movie = command.libraryFiltered[update.CallbackQuery.Data]
 		command.movie = movie
 
 	} else {
@@ -119,8 +118,6 @@ func (b *Bot) handleLibraryMovieMonitor(update tgbotapi.Update, command *userLib
 		return false
 	}
 	command.movie.Monitored = true
-	tmdbID := strconv.Itoa(int(command.movie.TmdbID))
-	command.library[tmdbID].Monitored = true
 	b.setLibraryState(command.chatID, command)
 	return b.showLibraryMovieDetail(update, command)
 }
@@ -138,8 +135,6 @@ func (b *Bot) handleLibraryMovieUnMonitor(update tgbotapi.Update, command *userL
 		return false
 	}
 	command.movie.Monitored = false
-	tmdbID := strconv.Itoa(int(command.movie.TmdbID))
-	command.library[tmdbID].Monitored = false
 	b.setLibraryState(command.chatID, command)
 	return b.showLibraryMovieDetail(update, command)
 }
