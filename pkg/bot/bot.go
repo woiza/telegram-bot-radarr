@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"golift.io/starr"
@@ -39,6 +40,7 @@ type userLibrary struct {
 	qualityProfiles        []*radarr.QualityProfile
 	allTags                []*starr.Tag
 	movie                  *radarr.Movie
+	lastSearch             time.Time
 	confirmation           bool
 	chatID                 int64
 	messageID              int

@@ -184,9 +184,6 @@ func (b *Bot) showLibraryMenuFiltered(update tgbotapi.Update, command *userLibra
 	}
 	var filteredMovies []*radarr.Movie
 	var responseText string
-	// if command.filter != "" {
-	// 	update.CallbackQuery.Data = command.filter
-	// }
 
 	switch command.filter {
 	case "FILTER_MONITORED":

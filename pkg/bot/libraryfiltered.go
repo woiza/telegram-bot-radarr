@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/woiza/telegram-bot-radarr/pkg/utils"
@@ -36,6 +37,10 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 		return b.handleLibraryMovieMonitor(update, command)
 	case "LIBRARY_MOVIE_UNMONITOR":
 		return b.handleLibraryMovieUnMonitor(update, command)
+	case "LIBRARY_MOVIE_SEARCH":
+		return b.handleLibraryMovieSearch(update, command)
+	case "LIBRARY_MOVIE_MONITOR_SEARCHNOW":
+		return b.handleLibraryMovieMonitorSearchNow(update, command)
 	default:
 		return b.showLibraryMovieDetail(update, command)
 	}
@@ -58,6 +63,13 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 		monitorIcon = "\u274C" // Red X
 	}
 
+	var lastSearchString string
+	if command.lastSearch.IsZero() {
+		lastSearchString = "" // Set empty string if the time is the zero value
+	} else {
+		lastSearchString = command.lastSearch.Format("02 Jan 06 - 15:04") // Convert non-zero time to string
+	}
+
 	var tagLabels []string
 	for _, tagID := range movie.Tags {
 		tag := findTagByID(command.allTags, tagID)
@@ -68,6 +80,7 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 	// Create a message with movie details
 	messageText := fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(movie.Title), movie.ImdbID, movie.Year)
 	messageText += fmt.Sprintf("Monitored: %s\n", monitorIcon)
+	messageText += fmt.Sprintf("Last Manual Search: %s\n", utils.Escape(lastSearchString))
 	messageText += fmt.Sprintf("Status: %s\n", utils.Escape(movie.Status))
 	messageText += fmt.Sprintf("Language: %s\n", utils.Escape(movie.OriginalLanguage.Name))
 	messageText += fmt.Sprintf("Size: %d GB\n", movie.SizeOnDisk/(1024*1024*1024))
@@ -135,6 +148,49 @@ func (b *Bot) handleLibraryMovieUnMonitor(update tgbotapi.Update, command *userL
 		return false
 	}
 	command.movie.Monitored = false
+	b.setLibraryState(command.chatID, command)
+	return b.showLibraryMovieDetail(update, command)
+}
+
+func (b *Bot) handleLibraryMovieSearch(update tgbotapi.Update, command *userLibrary) bool {
+	cmd := radarr.CommandRequest{
+		Name:     "MoviesSearch",
+		MovieIDs: []int64{command.movie.ID},
+	}
+	_, err := b.RadarrServer.SendCommand(&cmd)
+	if err != nil {
+		msg := tgbotapi.NewMessage(command.chatID, err.Error())
+		b.sendMessage(msg)
+		return false
+	}
+	command.lastSearch = time.Now()
+	b.setLibraryState(command.chatID, command)
+	return b.showLibraryMovieDetail(update, command)
+}
+
+func (b *Bot) handleLibraryMovieMonitorSearchNow(update tgbotapi.Update, command *userLibrary) bool {
+	bulkEdit := radarr.BulkEdit{
+		MovieIDs:  []int64{command.movie.ID},
+		Monitored: starr.True(),
+	}
+	_, err := b.RadarrServer.EditMovies(&bulkEdit)
+	if err != nil {
+		msg := tgbotapi.NewMessage(command.chatID, err.Error())
+		b.sendMessage(msg)
+		return false
+	}
+	command.movie.Monitored = true
+	cmd := radarr.CommandRequest{
+		Name:     "MoviesSearch",
+		MovieIDs: []int64{command.movie.ID},
+	}
+	_, err = b.RadarrServer.SendCommand(&cmd)
+	if err != nil {
+		msg := tgbotapi.NewMessage(command.chatID, err.Error())
+		b.sendMessage(msg)
+		return false
+	}
+	command.lastSearch = time.Now()
 	b.setLibraryState(command.chatID, command)
 	return b.showLibraryMovieDetail(update, command)
 }
