@@ -67,7 +67,7 @@ func (b *Bot) libraryMenu(update tgbotapi.Update) bool {
 	switch update.CallbackQuery.Data {
 	case "LIBRARY_FILTERED_GOBACK":
 		command.filter = ""
-		b.ActiveCommand[userID] = "LIBRARYMENU"
+		b.setActiveCommand(userID, "LIBRARYMENU")
 		b.setLibraryState(command.chatID, command)
 		return b.showLibraryMenu(update, command)
 	default:
