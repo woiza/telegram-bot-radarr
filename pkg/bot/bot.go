@@ -1,7 +1,9 @@
 package bot
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -10,6 +12,14 @@ import (
 	"golift.io/starr/radarr"
 
 	"github.com/woiza/telegram-bot-radarr/pkg/config"
+)
+
+const (
+	AddMovieCommand        = "ADDMOVIE"
+	DeleteMovieCommand     = "DELETEMOVIE"
+	LibraryMenuCommand     = "LIBRARYMENU"
+	LibraryFilteredCommand = "LIBRARYFILTERED"
+	CommandsClearedMessage = "I am not sure what you mean.\nAll commands have been cleared"
 )
 
 type userAddMovie struct {
@@ -61,6 +71,38 @@ type Bot struct {
 	muLibraryStates     sync.Mutex
 }
 
+type Command interface {
+	GetChatID() int64
+	GetMessageID() int
+}
+
+// Implement the interface for userLibrary
+func (c *userLibrary) GetChatID() int64 {
+	return c.chatID
+}
+
+func (c *userLibrary) GetMessageID() int {
+	return c.messageID
+}
+
+// Implement the interface for userDelete
+func (c *userDeleteMovie) GetChatID() int64 {
+	return c.chatID
+}
+
+func (c *userDeleteMovie) GetMessageID() int {
+	return c.messageID
+}
+
+// Implement the interface for userDelete
+// func (c *userAddMovie) GetChatID() int64 {
+// 	return c.chatID
+// }
+
+// func (c *userAddMovie) GetMessageID() int {
+// 	return c.messageID
+// }
+
 func New(config *config.Config, botAPI *tgbotapi.BotAPI, radarrServer *radarr.Radarr) *Bot {
 	return &Bot{
 		Config:            config,
@@ -96,30 +138,29 @@ func (b *Bot) HandleUpdate(update tgbotapi.Update) {
 
 	if update.CallbackQuery != nil {
 		switch activeCommand {
-		case "ADDMOVIE":
+		case AddMovieCommand:
 			if !b.addMovie(update) {
 				return
 			}
-		case "DELETEMOVIE":
+		case DeleteMovieCommand:
 			if !b.deleteMovie(update) {
 				return
 			}
-		case "LIBRARYMENU":
+		case LibraryMenuCommand:
 			if !b.libraryMenu(update) {
 				return
 			}
-		case "LIBRARYFILTERED":
+		case LibraryFilteredCommand:
 			if !b.libraryFiltered(update) {
 				return
 			}
 		default:
 			b.clearState(update)
-			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "I am not sure what you mean.\nAll commands have been cleared")
+			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, CommandsClearedMessage)
 			b.sendMessage(msg)
 			break
 		}
 	}
-
 	if update.Message == nil { // ignore any non-Message Updates
 		return
 	}
@@ -231,4 +272,42 @@ func (b *Bot) setLibraryState(userID int64, state *userLibrary) {
 	b.muLibraryStates.Lock()
 	defer b.muLibraryStates.Unlock()
 	b.LibraryStates[userID] = state
+}
+
+func (b *Bot) sendMessage(msg tgbotapi.Chattable) (tgbotapi.Message, error) {
+	message, err := b.Bot.Send(msg)
+	if err != nil {
+		log.Println("Error sending message:", err)
+	}
+	return message, err
+}
+
+func (b *Bot) sendMessageWithEdit(command Command, text string) {
+	editMsg := tgbotapi.NewEditMessageText(
+		command.GetChatID(),
+		command.GetMessageID(),
+		text,
+	)
+	_, err := b.sendMessage(editMsg)
+	if err != nil {
+		log.Printf("Error editing message: %v", err)
+	}
+}
+
+func (b *Bot) sendMessageWithEditAndKeyboard(command Command, keyboard tgbotapi.InlineKeyboardMarkup, text string) {
+	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
+		command.GetChatID(),
+		command.GetMessageID(),
+		text,
+		keyboard,
+	)
+	_, err := b.sendMessage(editMsg)
+	if err != nil {
+		log.Printf("Error editing message with keyboard: %v", err)
+	}
+}
+
+func prettyPrint(i interface{}) string {
+	s, _ := json.MarshalIndent(i, "", "\t")
+	return string(s)
 }

@@ -11,6 +11,23 @@ import (
 	"golift.io/starr/radarr"
 )
 
+const (
+	LibraryMovieEdit   = "LIBRARY_MOVIE_EDIT"
+	LibraryMovieGoBack = "LIBRARY_MOVIE_GOBACK"
+	//LibraryFilteredGoBack        = "LIBRARY_FILTERED_GOBACK" already defined in librarymenu.go
+	LibraryMovieMonitor          = "LIBRARY_MOVIE_MONITOR"
+	LibraryMovieUnmonitor        = "LIBRARY_MOVIE_UNMONITOR"
+	LibraryMovieSearch           = "LIBRARY_MOVIE_SEARCH"
+	LibraryMovieMonitorSearchNow = "LIBRARY_MOVIE_MONITOR_SEARCHNOW"
+	LibraryFilteredActive        = "LIBRARYFILTERED"
+	//LibraryMenuActive            = "LIBRARYMENU" already defined in librarymenu.go
+)
+
+const (
+	MonitorIcon   = "\u2705" // Green checkmark
+	UnmonitorIcon = "\u274C" // Red X
+)
+
 func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 	userID, err := b.getUserID(update)
 	if err != nil {
@@ -23,23 +40,23 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 		return false
 	}
 	switch update.CallbackQuery.Data {
-	case "LIBRARY_MOVIE_GOBACK":
+	case LibraryMovieGoBack:
 		command.movie = nil
-		b.setActiveCommand(userID, "LIBRARYFILTERED")
+		b.setActiveCommand(userID, LibraryFilteredActive)
 		b.setLibraryState(command.chatID, command)
 		return b.showLibraryMenuFiltered(update, command)
-	case "LIBRARY_FILTERED_GOBACK":
+	case LibraryFilteredGoBack:
 		command.filter = ""
-		b.setActiveCommand(userID, "LIBRARYMENU")
+		b.setActiveCommand(userID, LibraryMenuActive)
 		b.setLibraryState(command.chatID, command)
 		return b.showLibraryMenu(update, command)
-	case "LIBRARY_MOVIE_MONITOR":
+	case LibraryMovieMonitor:
 		return b.handleLibraryMovieMonitor(update, command)
-	case "LIBRARY_MOVIE_UNMONITOR":
+	case LibraryMovieUnmonitor:
 		return b.handleLibraryMovieUnMonitor(update, command)
-	case "LIBRARY_MOVIE_SEARCH":
+	case LibraryMovieSearch:
 		return b.handleLibraryMovieSearch(update, command)
-	case "LIBRARY_MOVIE_MONITOR_SEARCHNOW":
+	case LibraryMovieMonitorSearchNow:
 		return b.handleLibraryMovieMonitorSearchNow(update, command)
 	default:
 		return b.showLibraryMovieDetail(update, command)
@@ -58,9 +75,9 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 
 	var monitorIcon string
 	if movie.Monitored {
-		monitorIcon = "\u2705" // Green checkmark
+		monitorIcon = MonitorIcon
 	} else {
-		monitorIcon = "\u274C" // Red X
+		monitorIcon = UnmonitorIcon
 	}
 
 	var lastSearchString string
@@ -89,19 +106,15 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 
 	var keyboard tgbotapi.InlineKeyboardMarkup
 	if !movie.Monitored {
-		buttons := make([][]tgbotapi.InlineKeyboardButton, 4)
-		buttons[0] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Monitor Movie", "LIBRARY_MOVIE_MONITOR"))
-		buttons[1] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Monitor Movie & Search Now", "LIBRARY_MOVIE_MONITOR_SEARCHNOW"))
-		buttons[2] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Edit Movie", "LIBRARY_MOVIE_EDIT"))
-		buttons[3] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Go back - Show Movies", "LIBRARY_MOVIE_GOBACK"))
-		keyboard = tgbotapi.NewInlineKeyboardMarkup(buttons...)
+		keyboard = b.createKeyboard(
+			[]string{LibraryMovieMonitor, LibraryMovieMonitorSearchNow, LibraryMovieEdit, LibraryMovieGoBack},
+			[]string{"Monitor Movie", "Monitor Movie & Search Now", "Edit Movie", "Go back - Show Movies"},
+		)
 	} else {
-		buttons := make([][]tgbotapi.InlineKeyboardButton, 4)
-		buttons[0] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Unmonitor Movie", "LIBRARY_MOVIE_UNMONITOR"))
-		buttons[1] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Search Movie", "LIBRARY_MOVIE_SEARCH"))
-		buttons[2] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Edit Movie", "LIBRARY_MOVIE_EDIT"))
-		buttons[3] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Go back - Show Movies", "LIBRARY_MOVIE_GOBACK"))
-		keyboard = tgbotapi.NewInlineKeyboardMarkup(buttons...)
+		keyboard = b.createKeyboard(
+			[]string{LibraryMovieUnmonitor, LibraryMovieSearch, LibraryMovieEdit, LibraryMovieGoBack},
+			[]string{"Unmonitor Movie", "Search Movie", "Edit Movie", "Go back - Show Movies"},
+		)
 	}
 
 	// Send the message containing movie details along with the keyboard
@@ -123,7 +136,6 @@ func (b *Bot) handleLibraryMovieMonitor(update tgbotapi.Update, command *userLib
 		MovieIDs:  []int64{command.movie.ID},
 		Monitored: starr.True(),
 	}
-
 	_, err := b.RadarrServer.EditMovies(&bulkEdit)
 	if err != nil {
 		msg := tgbotapi.NewMessage(command.chatID, err.Error())
@@ -140,7 +152,6 @@ func (b *Bot) handleLibraryMovieUnMonitor(update tgbotapi.Update, command *userL
 		MovieIDs:  []int64{command.movie.ID},
 		Monitored: starr.False(),
 	}
-
 	_, err := b.RadarrServer.EditMovies(&bulkEdit)
 	if err != nil {
 		msg := tgbotapi.NewMessage(command.chatID, err.Error())
@@ -202,4 +213,12 @@ func findQualityProfileByID(qualityProfiles []*radarr.QualityProfile, qualityPro
 		}
 	}
 	return nil
+}
+
+func (b *Bot) createKeyboard(buttonData, buttonText []string) tgbotapi.InlineKeyboardMarkup {
+	buttons := make([][]tgbotapi.InlineKeyboardButton, len(buttonData))
+	for i := range buttonData {
+		buttons[i] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(buttonText[i], buttonData[i]))
+	}
+	return tgbotapi.NewInlineKeyboardMarkup(buttons...)
 }

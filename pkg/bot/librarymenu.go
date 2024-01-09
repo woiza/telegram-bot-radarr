@@ -11,6 +11,25 @@ import (
 	"golift.io/starr/radarr"
 )
 
+const (
+	LibraryFilteredGoBack = "LIBRARY_FILTERED_GOBACK"
+	LibraryMenu           = "LIBRARY_MENU"
+	LibraryCancel         = "LIBRARY_CANCEL"
+	LibraryMenuActive     = "LIBRARYMENU"
+	LibraryFiltered       = "LIBRARYFILTERED"
+	CommandsCleared       = "All commands have been cleared"
+)
+
+const (
+	FilterMonitored     = "FILTER_MONITORED"
+	FilterUnmonitored   = "FILTER_UNMONITORED"
+	FilterMissing       = "FILTER_MISSING"
+	FilterWanted        = "FILTER_WANTED"
+	FilterOnDisk        = "FILTER_ONDISK"
+	FilterShowAll       = "FILTER_SHOWALL"
+	FilterSearchResults = "FILTER_SEARCHRESULTS"
+)
+
 func (b *Bot) processLibraryCommand(update tgbotapi.Update, userID int64, r *radarr.Radarr) {
 	msg := tgbotapi.NewMessage(userID, "Handling library command... please wait")
 	message, _ := b.sendMessage(msg)
@@ -49,62 +68,8 @@ func (b *Bot) processLibraryCommand(update tgbotapi.Update, userID int64, r *rad
 		b.sendMessage(msg)
 		return
 	}
-	if len(searchResults) == 0 {
-		editMsg := tgbotapi.NewEditMessageText(
-			command.chatID,
-			command.messageID,
-			"No movies found matching your search criteria",
-		)
-		b.sendMessage(editMsg)
-		return
-	}
-	if len(searchResults) > 25 {
-		editMsg := tgbotapi.NewEditMessageText(
-			command.chatID,
-			command.messageID,
-			"Result size too large, please narrow down your search criteria",
-		)
-		b.sendMessage(editMsg)
-		return
-	}
 
-	// if movie has a radarr ID, it's in the library
-	var moviesInLibrary []*radarr.Movie
-	for _, movie := range searchResults {
-		if movie.ID != 0 {
-			moviesInLibrary = append(moviesInLibrary, movie)
-		}
-	}
-	if len(moviesInLibrary) == 0 {
-		editMsg := tgbotapi.NewEditMessageText(
-			command.chatID,
-			command.messageID,
-			"No movies found in your library",
-		)
-		b.sendMessage(editMsg)
-		return
-	}
-
-	command.searchResultsInLibrary = make(map[string]*radarr.Movie, len(moviesInLibrary))
-	for _, movie := range moviesInLibrary {
-		tmdbID := strconv.Itoa(int(movie.TmdbID))
-		command.searchResultsInLibrary[tmdbID] = movie
-	}
-
-	// go to movie details
-	if len(moviesInLibrary) == 1 {
-		command.movie = moviesInLibrary[0]
-		command.filter = "FILTER_SEARCHRESULTS"
-		b.setLibraryState(command.chatID, &command)
-		b.setActiveCommand(command.chatID, "LIBRARYFILTERED")
-		b.showLibraryMovieDetail(update, &command)
-		return
-	} else {
-		command.filter = "FILTER_SEARCHRESULTS"
-		b.setLibraryState(command.chatID, &command)
-		b.setActiveCommand(command.chatID, "LIBRARYFILTERED")
-		b.showLibraryMenuFiltered(update, &command)
-	}
+	b.handleSearchResults(update, searchResults, &command)
 
 }
 
@@ -120,24 +85,19 @@ func (b *Bot) libraryMenu(update tgbotapi.Update) bool {
 		return false
 	}
 	switch update.CallbackQuery.Data {
-	case "LIBRARY_FILTERED_GOBACK":
+	case LibraryFilteredGoBack:
 		command.filter = ""
-		b.setActiveCommand(userID, "LIBRARYMENU")
+		b.setActiveCommand(userID, LibraryMenuActive)
 		b.setLibraryState(command.chatID, command)
 		return b.showLibraryMenu(update, command)
-	case "LIBRARY_MENU":
+	case LibraryMenu:
 		command.filter = ""
 		b.setLibraryState(command.chatID, command)
 		b.showLibraryMenu(update, command)
 		return false
-	case "LIBRARY_CANCEL":
+	case LibraryCancel:
 		b.clearState(update)
-		editMsg := tgbotapi.NewEditMessageText(
-			command.chatID,
-			command.messageID,
-			"All commands have been cleared",
-		)
-		b.sendMessage(editMsg)
+		b.sendMessageWithEdit(command, CommandsCleared)
 		return false
 	default:
 		command.filter = update.CallbackQuery.Data
@@ -145,33 +105,26 @@ func (b *Bot) libraryMenu(update tgbotapi.Update) bool {
 		return b.showLibraryMenuFiltered(update, command)
 	}
 }
-
 func (b *Bot) showLibraryMenu(update tgbotapi.Update, command *userLibrary) bool {
 	keyboard := [][]tgbotapi.InlineKeyboardButton{
 		{
-			tgbotapi.NewInlineKeyboardButtonData("Missing Movies", "FILTER_MISSING"),
-			tgbotapi.NewInlineKeyboardButtonData("Wanted Movies", "FILTER_WANTED"),
+			tgbotapi.NewInlineKeyboardButtonData("Missing Movies", FilterMissing),
+			tgbotapi.NewInlineKeyboardButtonData("Wanted Movies", FilterWanted),
 		},
 		{
-			tgbotapi.NewInlineKeyboardButtonData("Monitored Movies", "FILTER_MONITORED"),
-			tgbotapi.NewInlineKeyboardButtonData("Unmonitored Movies", "FILTER_UNMONITORED"),
+			tgbotapi.NewInlineKeyboardButtonData("Monitored Movies", FilterMonitored),
+			tgbotapi.NewInlineKeyboardButtonData("Unmonitored Movies", FilterUnmonitored),
 		},
 		{
-			tgbotapi.NewInlineKeyboardButtonData("Movies on Disk", "FILTER_ONDISK"),
-			tgbotapi.NewInlineKeyboardButtonData("All Movies", "FILTER_SHOWALL"),
+			tgbotapi.NewInlineKeyboardButtonData("Movies on Disk", FilterOnDisk),
+			tgbotapi.NewInlineKeyboardButtonData("All Movies", FilterShowAll),
 		},
 		{
-			tgbotapi.NewInlineKeyboardButtonData("Cancel - clear command", "LIBRARY_CANCEL"),
+			tgbotapi.NewInlineKeyboardButtonData("Cancel - clear command", LibraryCancel),
 		},
 	}
 
-	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
-		command.chatID,
-		command.messageID,
-		"Select an option:",
-		tgbotapi.InlineKeyboardMarkup{InlineKeyboard: keyboard},
-	)
-	b.sendMessage(editMsg)
+	b.sendMessageWithEditAndKeyboard(command, tgbotapi.InlineKeyboardMarkup{InlineKeyboard: keyboard}, "Select an option:")
 	return false
 }
 
@@ -186,47 +139,47 @@ func (b *Bot) showLibraryMenuFiltered(update tgbotapi.Update, command *userLibra
 	var responseText string
 
 	switch command.filter {
-	case "FILTER_MONITORED":
+	case FilterMonitored:
 		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
 			return movie.Monitored
 		})
-		command.filter = "FILTER_MONITORED"
+		command.filter = FilterMonitored
 		responseText = "Monitored movies:"
-	case "FILTER_UNMONITORED":
+	case FilterUnmonitored:
 		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
 			return !movie.Monitored
 		})
-		command.filter = "FILTER_UNMONITORED"
+		command.filter = FilterUnmonitored
 		responseText = "Unmonitored movies:"
-	case "FILTER_MISSING":
+	case FilterMissing:
 		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
 			return movie.SizeOnDisk == 0 && movie.Monitored
 		})
-		command.filter = "FILTER_MISSING"
+		command.filter = FilterMissing
 		responseText = "Missing movies:"
-	case "FILTER_WANTED":
+	case FilterWanted:
 		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
 			return movie.SizeOnDisk == 0 && movie.Monitored && movie.IsAvailable
 		})
-		command.filter = "FILTER_WANTED"
+		command.filter = FilterWanted
 		responseText = "Wanted movies:"
-	case "FILTER_ONDISK":
+	case FilterOnDisk:
 		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
 			return movie.SizeOnDisk > 0
 		})
-		command.filter = "FILTER_ONDISK"
+		command.filter = FilterOnDisk
 		responseText = "Movies on disk:"
-	case "FILTER_SHOWALL":
+	case FilterShowAll:
 		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
 			return true // All movies included
 		})
-		command.filter = "FILTER_SHOWALL"
+		command.filter = FilterShowAll
 		responseText = "All Movies:"
-	case "FILTER_SEARCHRESULTS":
+	case FilterSearchResults:
 		for _, movie := range command.searchResultsInLibrary {
 			filteredMovies = append(filteredMovies, movie)
 		}
-		command.filter = "FILTER_SEARCHRESULTS"
+		command.filter = FilterSearchResults
 		responseText = "Search Results:"
 	default:
 		command.filter = ""
@@ -236,12 +189,7 @@ func (b *Bot) showLibraryMenuFiltered(update tgbotapi.Update, command *userLibra
 
 	if len(filteredMovies) == 0 {
 		b.clearState(update)
-		editMsg := tgbotapi.NewEditMessageText(
-			command.chatID,
-			command.messageID,
-			"No (filteredMovies) movies in library. All commands have been cleared",
-		)
-		b.sendMessage(editMsg)
+		b.sendMessageWithEdit(command, "No movies in your library. All commands have been cleared")
 		return false
 	}
 
@@ -251,7 +199,7 @@ func (b *Bot) showLibraryMenuFiltered(update tgbotapi.Update, command *userLibra
 
 	inlineKeyboard := b.getMoviesAsInlineKeyboard(filteredMovies)
 	var row []tgbotapi.InlineKeyboardButton
-	row = append(row, tgbotapi.NewInlineKeyboardButtonData("Go back - Show library menu", "LIBRARY_FILTERED_GOBACK"))
+	row = append(row, tgbotapi.NewInlineKeyboardButtonData("Go back - Show library menu", LibraryFilteredGoBack))
 	inlineKeyboard = append(inlineKeyboard, row)
 	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
 		command.chatID,
@@ -269,7 +217,7 @@ func (b *Bot) showLibraryMenuFiltered(update tgbotapi.Update, command *userLibra
 	}
 
 	b.setLibraryState(command.chatID, command)
-	b.setActiveCommand(command.chatID, "LIBRARYFILTERED")
+	b.setActiveCommand(command.chatID, LibraryFiltered)
 	b.sendMessage(editMsg)
 	return false
 }
@@ -282,4 +230,47 @@ func filterMovies(movies []*radarr.Movie, filterCondition func(movie *radarr.Mov
 		}
 	}
 	return filtered
+}
+
+func (b *Bot) handleSearchResults(update tgbotapi.Update, searchResults []*radarr.Movie, command *userLibrary) {
+	if len(searchResults) == 0 {
+		b.sendMessageWithEdit(command, "No movies found matching your search criteria")
+		return
+	}
+	if len(searchResults) > 25 {
+		b.sendMessageWithEdit(command, "Result size too large, please narrow down your search criteria")
+		return
+	}
+
+	// if movie has a radarr ID, it's in the library
+	var moviesInLibrary []*radarr.Movie
+	for _, movie := range searchResults {
+		if movie.ID != 0 {
+			moviesInLibrary = append(moviesInLibrary, movie)
+		}
+	}
+	if len(moviesInLibrary) == 0 {
+		b.sendMessageWithEdit(command, "No movies found in your library")
+		return
+	}
+
+	command.searchResultsInLibrary = make(map[string]*radarr.Movie, len(moviesInLibrary))
+	for _, movie := range moviesInLibrary {
+		tmdbID := strconv.Itoa(int(movie.TmdbID))
+		command.searchResultsInLibrary[tmdbID] = movie
+	}
+
+	// go to movie details
+	if len(moviesInLibrary) == 1 {
+		command.movie = moviesInLibrary[0]
+		command.filter = FilterSearchResults
+		b.setLibraryState(command.chatID, command)
+		b.setActiveCommand(command.chatID, LibraryFilteredCommand)
+		b.showLibraryMovieDetail(update, command)
+	} else {
+		command.filter = FilterSearchResults
+		b.setLibraryState(command.chatID, command)
+		b.setActiveCommand(command.chatID, LibraryFilteredCommand)
+		b.showLibraryMenuFiltered(update, command)
+	}
 }
