@@ -94,15 +94,53 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 	}
 	tagsString := strings.Join(tagLabels, ", ")
 
+	movieFiles, err := b.RadarrServer.GetMovieFile(movie.ID)
+	if err != nil {
+		msg := tgbotapi.NewMessage(command.chatID, err.Error())
+		b.sendMessage(msg)
+		return false
+	}
+
+	var quality string
+	var videoCodec string
+	var videoDynamicRange string
+	var audioInfo string
+	var languages string
+	var formats string
+	var customFormatScore string
+	if len(movieFiles) == 1 {
+		quality = movieFiles[0].Quality.Quality.Name
+		videoCodec = movieFiles[0].MediaInfo.VideoCodec
+		videoDynamicRange = movieFiles[0].MediaInfo.VideoDynamicRangeType
+		audioInfo = movieFiles[0].MediaInfo.AudioCodec
+		customFormatScore = fmt.Sprintf("%d", movieFiles[0].CustomFormatScore)
+		languages = movieFiles[0].MediaInfo.AudioLanguages
+		formats = movieFiles[0].MediaInfo.VideoDynamicRangeType
+	} else {
+		quality = ""
+		videoCodec = ""
+		videoDynamicRange = ""
+		audioInfo = ""
+		languages = ""
+		formats = ""
+		customFormatScore = ""
+	}
+
 	// Create a message with movie details
 	messageText := fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(movie.Title), movie.ImdbID, movie.Year)
 	messageText += fmt.Sprintf("Monitored: %s\n", monitorIcon)
-	messageText += fmt.Sprintf("Last Manual Search: %s\n", utils.Escape(lastSearchString))
 	messageText += fmt.Sprintf("Status: %s\n", utils.Escape(movie.Status))
-	messageText += fmt.Sprintf("Language: %s\n", utils.Escape(movie.OriginalLanguage.Name))
+	messageText += fmt.Sprintf("Last Manual Search: %s\n", utils.Escape(lastSearchString))
 	messageText += fmt.Sprintf("Size: %d GB\n", movie.SizeOnDisk/(1024*1024*1024))
+	messageText += fmt.Sprintf("Quality: %s\n", utils.Escape(quality))
+	messageText += fmt.Sprintf("Video Codec: %s\n", utils.Escape(videoCodec))
+	messageText += fmt.Sprintf("Video Dynamic Range: %s\n", utils.Escape(videoDynamicRange))
+	messageText += fmt.Sprintf("Audio Info: %s\n", utils.Escape(audioInfo))
+	messageText += fmt.Sprintf("Formats: %s\n", utils.Escape(formats))
+	messageText += fmt.Sprintf("Languages: %s\n", utils.Escape(languages))
 	messageText += fmt.Sprintf("Tags: %s\n", utils.Escape(tagsString))
 	messageText += fmt.Sprintf("Quality Profile: %s\n", utils.Escape(findQualityProfileByID(command.qualityProfiles, movie.QualityProfileID).Name))
+	messageText += fmt.Sprintf("Custom Format Score: %s\n", utils.Escape(customFormatScore))
 
 	var keyboard tgbotapi.InlineKeyboardMarkup
 	if !movie.Monitored {
