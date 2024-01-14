@@ -56,6 +56,8 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 		return b.handleLibraryMovieUnMonitor(update, command)
 	case LibraryMovieSearch:
 		return b.handleLibraryMovieSearch(update, command)
+	case LibraryMovieEdit:
+		return b.handleLibraryMovieEdit(update, command)
 	case LibraryMovieMonitorSearchNow:
 		return b.handleLibraryMovieMonitorSearchNow(update, command)
 	default:
@@ -101,13 +103,13 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 		return false
 	}
 
-	var quality string
-	var videoCodec string
-	var videoDynamicRange string
-	var audioInfo string
-	var languages string
-	var formats string
-	var customFormatScore string
+	quality := ""
+	videoCodec := ""
+	videoDynamicRange := ""
+	audioInfo := ""
+	customFormatScore := ""
+	languages := ""
+	formats := ""
 	if len(movieFiles) == 1 {
 		quality = movieFiles[0].Quality.Quality.Name
 		videoCodec = movieFiles[0].MediaInfo.VideoCodec
@@ -116,14 +118,6 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 		customFormatScore = fmt.Sprintf("%d", movieFiles[0].CustomFormatScore)
 		languages = movieFiles[0].MediaInfo.AudioLanguages
 		formats = movieFiles[0].MediaInfo.VideoDynamicRangeType
-	} else {
-		quality = ""
-		videoCodec = ""
-		videoDynamicRange = ""
-		audioInfo = ""
-		languages = ""
-		formats = ""
-		customFormatScore = ""
 	}
 
 	// Create a message with movie details
@@ -244,6 +238,13 @@ func (b *Bot) handleLibraryMovieMonitorSearchNow(update tgbotapi.Update, command
 	return b.showLibraryMovieDetail(update, command)
 }
 
+func (b *Bot) handleLibraryMovieEdit(update tgbotapi.Update, command *userLibrary) bool {
+
+	b.setLibraryState(command.chatID, command)
+	b.setActiveCommand(command.chatID, LibraryMovieEditCommand)
+	return b.showLibraryMovieEdit(update, command)
+}
+
 func findQualityProfileByID(qualityProfiles []*radarr.QualityProfile, qualityProfileID int64) *radarr.QualityProfile {
 	for _, profile := range qualityProfiles {
 		if profile.ID == qualityProfileID {
@@ -251,12 +252,4 @@ func findQualityProfileByID(qualityProfiles []*radarr.QualityProfile, qualityPro
 		}
 	}
 	return nil
-}
-
-func (b *Bot) createKeyboard(buttonData, buttonText []string) tgbotapi.InlineKeyboardMarkup {
-	buttons := make([][]tgbotapi.InlineKeyboardButton, len(buttonData))
-	for i := range buttonData {
-		buttons[i] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(buttonText[i], buttonData[i]))
-	}
-	return tgbotapi.NewInlineKeyboardMarkup(buttons...)
 }

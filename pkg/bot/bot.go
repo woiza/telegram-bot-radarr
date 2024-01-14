@@ -15,11 +15,12 @@ import (
 )
 
 const (
-	AddMovieCommand        = "ADDMOVIE"
-	DeleteMovieCommand     = "DELETEMOVIE"
-	LibraryMenuCommand     = "LIBRARYMENU"
-	LibraryFilteredCommand = "LIBRARYFILTERED"
-	CommandsClearedMessage = "I am not sure what you mean.\nAll commands have been cleared"
+	AddMovieCommand         = "ADDMOVIE"
+	DeleteMovieCommand      = "DELETEMOVIE"
+	LibraryMenuCommand      = "LIBRARYMENU"
+	LibraryFilteredCommand  = "LIBRARYFILTERED"
+	LibraryMovieEditCommand = "LIBRARYMOVIEEDIT"
+	CommandsClearedMessage  = "I am not sure what you mean.\nAll commands have been cleared"
 )
 
 type userAddMovie struct {
@@ -152,6 +153,10 @@ func (b *Bot) HandleUpdate(update tgbotapi.Update) {
 			}
 		case LibraryFilteredCommand:
 			if !b.libraryFiltered(update) {
+				return
+			}
+		case LibraryMovieEditCommand:
+			if !b.libraryMovieEdit(update) {
 				return
 			}
 		default:

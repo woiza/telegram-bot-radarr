@@ -129,9 +129,7 @@ func (b *Bot) sendMoviesAsInlineKeyboard(movies []*radarr.Movie, msg *tgbotapi.E
 }
 
 func (b *Bot) getMoviesAsInlineKeyboard(movies []*radarr.Movie) [][]tgbotapi.InlineKeyboardButton {
-
 	var inlineKeyboard [][]tgbotapi.InlineKeyboardButton
-
 	for _, movie := range movies {
 		button := tgbotapi.NewInlineKeyboardButtonData(
 			fmt.Sprintf("%v - %v", movie.Title, movie.Year),
@@ -140,6 +138,13 @@ func (b *Bot) getMoviesAsInlineKeyboard(movies []*radarr.Movie) [][]tgbotapi.Inl
 		row := []tgbotapi.InlineKeyboardButton{button}
 		inlineKeyboard = append(inlineKeyboard, row)
 	}
-
 	return inlineKeyboard
+}
+
+func (b *Bot) createKeyboard(buttonData, buttonText []string) tgbotapi.InlineKeyboardMarkup {
+	buttons := make([][]tgbotapi.InlineKeyboardButton, len(buttonData))
+	for i := range buttonData {
+		buttons[i] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(buttonText[i], buttonData[i]))
+	}
+	return tgbotapi.NewInlineKeyboardMarkup(buttons...)
 }
