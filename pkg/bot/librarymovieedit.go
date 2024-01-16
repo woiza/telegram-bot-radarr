@@ -6,6 +6,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/woiza/telegram-bot-radarr/pkg/utils"
+	"golift.io/starr/radarr"
 )
 
 const (
@@ -30,6 +31,8 @@ func (b *Bot) libraryMovieEdit(update tgbotapi.Update) bool {
 	switch update.CallbackQuery.Data {
 	case LibraryMovieEditToggleMonitor:
 		return b.handleLibraryMovieEditToggleMonitor(update, command)
+	case LibraryMovieEditToggleQualityProfile:
+		return b.handleLibraryMovieEditToggleQualityProfile(update, command)
 	case LibraryMovieEditGoBack:
 		b.setActiveCommand(userID, LibraryFilteredActive)
 		b.setLibraryState(command.chatID, command)
@@ -54,7 +57,7 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 	}
 
 	//minimumAvailability := movie.MinimumAvailability
-	qualityProfile := findQualityProfileByID(command.qualityProfiles, movie.QualityProfileID).Name
+	qualityProfile := getQualityProfileByID(command.qualityProfiles, command.movie.QualityProfileID).Name
 
 	var tagLabels []string
 	for _, tagID := range movie.Tags {
@@ -97,4 +100,30 @@ func (b *Bot) handleLibraryMovieEditToggleMonitor(update tgbotapi.Update, comman
 	command.movie.Monitored = !command.movie.Monitored
 	b.setLibraryState(command.chatID, command)
 	return b.showLibraryMovieEdit(update, command)
+}
+
+func (b *Bot) handleLibraryMovieEditToggleQualityProfile(update tgbotapi.Update, command *userLibrary) bool {
+	currentProfileIndex := getQualityProfileIndexByID(command.qualityProfiles, command.movie.QualityProfileID)
+	nextProfileIndex := (currentProfileIndex + 1) % len(command.qualityProfiles)
+	command.movie.QualityProfileID = command.qualityProfiles[nextProfileIndex].ID
+	b.setLibraryState(command.chatID, command)
+	return b.showLibraryMovieEdit(update, command)
+}
+
+func getQualityProfileByID(qualityProfiles []*radarr.QualityProfile, id int64) *radarr.QualityProfile {
+	for _, profile := range qualityProfiles {
+		if profile.ID == id {
+			return profile
+		}
+	}
+	return nil // Return an appropriate default or handle the error as needed
+}
+
+func getQualityProfileIndexByID(qualityProfiles []*radarr.QualityProfile, id int64) int {
+	for i, profile := range qualityProfiles {
+		if profile.ID == id {
+			return i
+		}
+	}
+	return -1 // Return an appropriate default or handle the error as needed
 }
