@@ -141,7 +141,7 @@ func (b *Bot) getMoviesAsInlineKeyboard(movies []*radarr.Movie) [][]tgbotapi.Inl
 	return inlineKeyboard
 }
 
-func (b *Bot) createKeyboard(buttonData, buttonText []string) tgbotapi.InlineKeyboardMarkup {
+func (b *Bot) createKeyboard(buttonText, buttonData []string) tgbotapi.InlineKeyboardMarkup {
 	buttons := make([][]tgbotapi.InlineKeyboardButton, len(buttonData))
 	for i := range buttonData {
 		buttons[i] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(buttonText[i], buttonData[i]))

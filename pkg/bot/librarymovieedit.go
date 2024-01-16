@@ -8,6 +8,14 @@ import (
 	"github.com/woiza/telegram-bot-radarr/pkg/utils"
 )
 
+const (
+	LibraryMovieEditToggleMonitor        = "LIBRARY_MOVIE_EDIT_TOGGLE_MONITOR"
+	LibraryMovieEditToggleQualityProfile = "LIBRARY_MOVIE_EDIT_TOGGLE_QUALITY_PROFILE"
+	LibraryMovieEditSubmitChanges        = "LIBRARY_MOVIE_EDIT_SUBMIT_CHANGES"
+	LibraryMovieEditCancel               = "LIBRARY_MOVIE_EDIT_CANCEL"
+	LibraryMovieEditGoBack               = "LIBRARY_MOVIE_EDIT_GOBACK"
+)
+
 func (b *Bot) libraryMovieEdit(update tgbotapi.Update) bool {
 	userID, err := b.getUserID(update)
 	if err != nil {
@@ -20,7 +28,16 @@ func (b *Bot) libraryMovieEdit(update tgbotapi.Update) bool {
 		return false
 	}
 	switch update.CallbackQuery.Data {
-
+	case LibraryMovieEditToggleMonitor:
+		return b.handleLibraryMovieEditToggleMonitor(update, command)
+	case LibraryMovieEditGoBack:
+		b.setActiveCommand(userID, LibraryFilteredActive)
+		b.setLibraryState(command.chatID, command)
+		return b.showLibraryMovieDetail(update, command)
+	case LibraryMovieEditCancel:
+		b.clearState(update)
+		b.sendMessageWithEdit(command, CommandsCleared)
+		return false
 	default:
 		return b.showLibraryMovieEdit(update, command)
 	}
@@ -51,13 +68,13 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 	var keyboard tgbotapi.InlineKeyboardMarkup
 	if !movie.Monitored {
 		keyboard = b.createKeyboard(
-			[]string{LibraryMovieMonitor, LibraryMovieMonitorSearchNow, LibraryMovieEdit},
-			[]string{"Monitored: " + monitorIcon, qualityProfile, tagsString},
+			[]string{"Monitored: " + monitorIcon, qualityProfile, tagsString, "Go back - Show Movie Details", "Cancel - clear command"},
+			[]string{LibraryMovieEditToggleMonitor, LibraryMovieEditToggleQualityProfile, LibraryMovieEdit, LibraryMovieEditGoBack, LibraryMovieEditCancel},
 		)
 	} else {
 		keyboard = b.createKeyboard(
-			[]string{LibraryMovieUnmonitor, LibraryMovieSearch, LibraryMovieEdit},
-			[]string{"Monitored: " + monitorIcon, qualityProfile, tagsString},
+			[]string{"Monitored: " + monitorIcon, qualityProfile, tagsString, "Go back - Show Movie Details", "Cancel - clear command"},
+			[]string{LibraryMovieEditToggleMonitor, LibraryMovieEditToggleQualityProfile, LibraryMovieEdit, LibraryMovieEditGoBack, LibraryMovieEditCancel},
 		)
 	}
 
@@ -74,4 +91,10 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 	b.sendMessage(editMsg)
 	return false
 
+}
+
+func (b *Bot) handleLibraryMovieEditToggleMonitor(update tgbotapi.Update, command *userLibrary) bool {
+	command.movie.Monitored = !command.movie.Monitored
+	b.setLibraryState(command.chatID, command)
+	return b.showLibraryMovieEdit(update, command)
 }
