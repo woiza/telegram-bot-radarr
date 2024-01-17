@@ -93,6 +93,7 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 	for _, tagID := range movie.Tags {
 		tag := findTagByID(command.allTags, tagID)
 		tagLabels = append(tagLabels, tag.Label)
+		command.selectedTags = append(command.selectedTags, tag)
 	}
 	tagsString := strings.Join(tagLabels, ", ")
 

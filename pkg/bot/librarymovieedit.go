@@ -2,10 +2,12 @@ package bot
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/woiza/telegram-bot-radarr/pkg/utils"
+	"golift.io/starr"
 	"golift.io/starr/radarr"
 )
 
@@ -13,8 +15,8 @@ const (
 	LibraryMovieEditToggleMonitor        = "LIBRARY_MOVIE_EDIT_TOGGLE_MONITOR"
 	LibraryMovieEditToggleQualityProfile = "LIBRARY_MOVIE_EDIT_TOGGLE_QUALITY_PROFILE"
 	LibraryMovieEditSubmitChanges        = "LIBRARY_MOVIE_EDIT_SUBMIT_CHANGES"
-	LibraryMovieEditCancel               = "LIBRARY_MOVIE_EDIT_CANCEL"
 	LibraryMovieEditGoBack               = "LIBRARY_MOVIE_EDIT_GOBACK"
+	LibraryMovieEditCancel               = "LIBRARY_MOVIE_EDIT_CANCEL"
 )
 
 func (b *Bot) libraryMovieEdit(update tgbotapi.Update) bool {
@@ -42,6 +44,10 @@ func (b *Bot) libraryMovieEdit(update tgbotapi.Update) bool {
 		b.sendMessageWithEdit(command, CommandsCleared)
 		return false
 	default:
+		// Check if it starts with "TAG_"
+		if strings.HasPrefix(update.CallbackQuery.Data, "TAG_") {
+			return b.handleLibraryMovieEditSelectTag(update, command)
+		}
 		return b.showLibraryMovieEdit(update, command)
 	}
 }
@@ -64,22 +70,50 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 		tag := findTagByID(command.allTags, tagID)
 		tagLabels = append(tagLabels, tag.Label)
 	}
-	tagsString := strings.Join(tagLabels, ", ")
+	//tagsString := strings.Join(tagLabels, ", ")
 
 	messageText := fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(movie.Title), movie.ImdbID, movie.Year)
 
 	var keyboard tgbotapi.InlineKeyboardMarkup
 	if !movie.Monitored {
 		keyboard = b.createKeyboard(
-			[]string{"Monitored: " + monitorIcon, qualityProfile, tagsString, "Go back - Show Movie Details", "Cancel - clear command"},
-			[]string{LibraryMovieEditToggleMonitor, LibraryMovieEditToggleQualityProfile, LibraryMovieEdit, LibraryMovieEditGoBack, LibraryMovieEditCancel},
+			[]string{"Monitored: " + monitorIcon, qualityProfile},                         //, tagsString, "Go back - Show Movie Details", "Cancel - clear command"},
+			[]string{LibraryMovieEditToggleMonitor, LibraryMovieEditToggleQualityProfile}, //, LibraryMovieEdit, LibraryMovieEditGoBack, LibraryMovieEditCancel},
 		)
 	} else {
 		keyboard = b.createKeyboard(
-			[]string{"Monitored: " + monitorIcon, qualityProfile, tagsString, "Go back - Show Movie Details", "Cancel - clear command"},
-			[]string{LibraryMovieEditToggleMonitor, LibraryMovieEditToggleQualityProfile, LibraryMovieEdit, LibraryMovieEditGoBack, LibraryMovieEditCancel},
+			[]string{"Monitored: " + monitorIcon, qualityProfile},                         //, tagsString, "Go back - Show Movie Details", "Cancel - clear command"},
+			[]string{LibraryMovieEditToggleMonitor, LibraryMovieEditToggleQualityProfile}, //, LibraryMovieEdit, LibraryMovieEditGoBack, LibraryMovieEditCancel},
 		)
 	}
+
+	var tagsKeyboard [][]tgbotapi.InlineKeyboardButton
+	for _, tag := range command.allTags {
+		// Check if the tag is selected
+		isSelected := isSelectedTag(command.selectedTags, tag.ID)
+
+		var buttonText string
+		if isSelected {
+			buttonText = tag.Label + " \u2705"
+		} else {
+			buttonText = tag.Label
+		}
+
+		row := []tgbotapi.InlineKeyboardButton{
+			tgbotapi.NewInlineKeyboardButtonData(buttonText, "TAG_"+strconv.Itoa(int(tag.ID))),
+		}
+		tagsKeyboard = append(tagsKeyboard, row)
+	}
+
+	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, tagsKeyboard...)
+
+	var keyboardSubmitCancelGoBack tgbotapi.InlineKeyboardMarkup
+	keyboardSubmitCancelGoBack = b.createKeyboard(
+		[]string{"Submit - Confirm Changes", "Go back - Show Movie Details", "Cancel - clear command"},
+		[]string{LibraryMovieEditSubmitChanges, LibraryMovieEditGoBack, LibraryMovieEditCancel},
+	)
+
+	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardSubmitCancelGoBack.InlineKeyboard...)
 
 	// Send the message containing movie details along with the keyboard
 	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
@@ -110,6 +144,25 @@ func (b *Bot) handleLibraryMovieEditToggleQualityProfile(update tgbotapi.Update,
 	return b.showLibraryMovieEdit(update, command)
 }
 
+func (b *Bot) handleLibraryMovieEditSelectTag(update tgbotapi.Update, command *userLibrary) bool {
+	tagIDStr := strings.TrimPrefix(update.CallbackQuery.Data, "TAG_")
+	// Parse the tag ID
+	tagID, err := strconv.Atoi(tagIDStr)
+	if err != nil {
+		fmt.Printf("Cannot convert tag string to int: %v", err)
+		return false
+	}
+
+	// Check if the tag is already selected
+	if !isSelectedTag(command.selectedTags, int(tagID)) {
+		// Add the tag to selectedTags
+		tag := &starr.Tag{ID: int(tagID)} // Create a new starr.Tag with the ID
+		command.selectedTags = append(command.selectedTags, tag)
+	}
+	b.setLibraryState(command.chatID, command)
+	return b.showLibraryMovieEdit(update, command)
+}
+
 func getQualityProfileByID(qualityProfiles []*radarr.QualityProfile, id int64) *radarr.QualityProfile {
 	for _, profile := range qualityProfiles {
 		if profile.ID == id {
@@ -126,4 +179,14 @@ func getQualityProfileIndexByID(qualityProfiles []*radarr.QualityProfile, id int
 		}
 	}
 	return -1 // Return an appropriate default or handle the error as needed
+}
+
+// Function to check if a tag is selected
+func isSelectedTag(selectedTags []*starr.Tag, tagID int) bool {
+	for _, selectedTag := range selectedTags {
+		if selectedTag.ID == tagID {
+			return true
+		}
+	}
+	return false
 }

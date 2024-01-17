@@ -50,9 +50,9 @@ type userLibrary struct {
 	filter                 string
 	qualityProfiles        []*radarr.QualityProfile
 	allTags                []*starr.Tag
+	selectedTags           []*starr.Tag
 	movie                  *radarr.Movie
 	lastSearch             time.Time
-	confirmation           bool
 	chatID                 int64
 	messageID              int
 }
