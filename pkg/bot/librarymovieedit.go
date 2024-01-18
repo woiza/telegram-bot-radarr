@@ -35,6 +35,8 @@ func (b *Bot) libraryMovieEdit(update tgbotapi.Update) bool {
 		return b.handleLibraryMovieEditToggleMonitor(update, command)
 	case LibraryMovieEditToggleQualityProfile:
 		return b.handleLibraryMovieEditToggleQualityProfile(update, command)
+	case LibraryMovieEditSubmitChanges:
+		return b.handleLibraryMovieEditSubmitChanges(update, command)
 	case LibraryMovieEditGoBack:
 		b.setActiveCommand(userID, LibraryFilteredActive)
 		b.setLibraryState(command.chatID, command)
@@ -62,7 +64,6 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 		monitorIcon = UnmonitorIcon
 	}
 
-	//minimumAvailability := movie.MinimumAvailability
 	qualityProfile := getQualityProfileByID(command.qualityProfiles, command.selectedQualityProfile).Name
 
 	messageText := fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(movie.Title), movie.ImdbID, movie.Year)
@@ -154,6 +155,26 @@ func (b *Bot) handleLibraryMovieEditSelectTag(update tgbotapi.Update, command *u
 	return b.showLibraryMovieEdit(update, command)
 }
 
+func (b *Bot) handleLibraryMovieEditSubmitChanges(update tgbotapi.Update, command *userLibrary) bool {
+	bulkEdit := radarr.BulkEdit{
+		MovieIDs:         []int64{command.movie.ID},
+		Monitored:        &command.selectedMonitoring,
+		QualityProfileID: &command.selectedQualityProfile,
+		Tags:             command.selectedTags,
+		ApplyTags:        starr.TagsReplace.Ptr(),
+	}
+	_, err := b.RadarrServer.EditMovies(&bulkEdit)
+	if err != nil {
+		msg := tgbotapi.NewMessage(command.chatID, err.Error())
+		b.sendMessage(msg)
+		return false
+	}
+	text := fmt.Sprintf("Movie '%v' updated\n", command.movie.Title)
+	b.clearState(update)
+	b.sendMessageWithEdit(command, text)
+	return false
+}
+
 func getQualityProfileByID(qualityProfiles []*radarr.QualityProfile, id int64) *radarr.QualityProfile {
 	for _, profile := range qualityProfiles {
 		if profile.ID == id {
@@ -172,7 +193,6 @@ func getQualityProfileIndexByID(qualityProfiles []*radarr.QualityProfile, id int
 	return -1 // Return an appropriate default or handle the error as needed
 }
 
-// Function to check if a tag is selected
 func isSelectedTag(selectedTags []int, tagID int) bool {
 	for _, selectedTag := range selectedTags {
 		if selectedTag == tagID {
@@ -182,7 +202,6 @@ func isSelectedTag(selectedTags []int, tagID int) bool {
 	return false
 }
 
-// removeTag removes a tag with the given ID from the list of selected tags.
 func removeTag(tags []int, tagID int) []int {
 	var updatedTags []int
 	for _, tag := range tags {
