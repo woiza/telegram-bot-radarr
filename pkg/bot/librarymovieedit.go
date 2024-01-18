@@ -63,14 +63,7 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 	}
 
 	//minimumAvailability := movie.MinimumAvailability
-	qualityProfile := getQualityProfileByID(command.qualityProfiles, command.movie.QualityProfileID).Name
-
-	var tagLabels []string
-	for _, tagID := range movie.Tags {
-		tag := findTagByID(command.allTags, tagID)
-		tagLabels = append(tagLabels, tag.Label)
-	}
-	//tagsString := strings.Join(tagLabels, ", ")
+	qualityProfile := getQualityProfileByID(command.qualityProfiles, command.selectedQualityProfile).Name
 
 	messageText := fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(movie.Title), movie.ImdbID, movie.Year)
 
@@ -131,9 +124,9 @@ func (b *Bot) handleLibraryMovieEditToggleMonitor(update tgbotapi.Update, comman
 }
 
 func (b *Bot) handleLibraryMovieEditToggleQualityProfile(update tgbotapi.Update, command *userLibrary) bool {
-	currentProfileIndex := getQualityProfileIndexByID(command.qualityProfiles, command.movie.QualityProfileID)
+	currentProfileIndex := getQualityProfileIndexByID(command.qualityProfiles, command.selectedQualityProfile)
 	nextProfileIndex := (currentProfileIndex + 1) % len(command.qualityProfiles)
-	command.movie.QualityProfileID = command.qualityProfiles[nextProfileIndex].ID
+	command.selectedQualityProfile = command.qualityProfiles[nextProfileIndex].ID
 	b.setLibraryState(command.chatID, command)
 	return b.showLibraryMovieEdit(update, command)
 }
@@ -154,7 +147,7 @@ func (b *Bot) handleLibraryMovieEditSelectTag(update tgbotapi.Update, command *u
 	} else {
 		// If not selected, add the tag to selectedTags (select)
 		tag := &starr.Tag{ID: tagID} // Create a new starr.Tag with the ID
-		command.selectedTags = append(command.selectedTags, tag)
+		command.selectedTags = append(command.selectedTags, tag.ID)
 	}
 
 	b.setLibraryState(command.chatID, command)
@@ -180,9 +173,9 @@ func getQualityProfileIndexByID(qualityProfiles []*radarr.QualityProfile, id int
 }
 
 // Function to check if a tag is selected
-func isSelectedTag(selectedTags []*starr.Tag, tagID int) bool {
+func isSelectedTag(selectedTags []int, tagID int) bool {
 	for _, selectedTag := range selectedTags {
-		if selectedTag.ID == tagID {
+		if selectedTag == tagID {
 			return true
 		}
 	}
@@ -190,10 +183,10 @@ func isSelectedTag(selectedTags []*starr.Tag, tagID int) bool {
 }
 
 // removeTag removes a tag with the given ID from the list of selected tags.
-func removeTag(tags []*starr.Tag, tagID int) []*starr.Tag {
-	var updatedTags []*starr.Tag
+func removeTag(tags []int, tagID int) []int {
+	var updatedTags []int
 	for _, tag := range tags {
-		if tag.ID != tagID {
+		if tag != tagID {
 			updatedTags = append(updatedTags, tag)
 		}
 	}

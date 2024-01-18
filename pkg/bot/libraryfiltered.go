@@ -75,6 +75,10 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 		movie = command.movie
 	}
 
+	command.selectedMonitoring = movie.Monitored
+	command.selectedTags = movie.Tags
+	command.selectedQualityProfile = movie.QualityProfileID
+
 	var monitorIcon string
 	if movie.Monitored {
 		monitorIcon = MonitorIcon
@@ -93,7 +97,7 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 	for _, tagID := range movie.Tags {
 		tag := findTagByID(command.allTags, tagID)
 		tagLabels = append(tagLabels, tag.Label)
-		command.selectedTags = append(command.selectedTags, tag)
+		command.selectedTags = append(command.selectedTags, tag.ID)
 	}
 	tagsString := strings.Join(tagLabels, ", ")
 
