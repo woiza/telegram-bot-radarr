@@ -56,7 +56,7 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 	movie := command.movie
 
 	var monitorIcon string
-	if movie.Monitored {
+	if command.selectedMonitoring {
 		monitorIcon = MonitorIcon
 	} else {
 		monitorIcon = UnmonitorIcon
@@ -75,17 +75,11 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 	messageText := fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(movie.Title), movie.ImdbID, movie.Year)
 
 	var keyboard tgbotapi.InlineKeyboardMarkup
-	if !movie.Monitored {
-		keyboard = b.createKeyboard(
-			[]string{"Monitored: " + monitorIcon, qualityProfile},                         //, tagsString, "Go back - Show Movie Details", "Cancel - clear command"},
-			[]string{LibraryMovieEditToggleMonitor, LibraryMovieEditToggleQualityProfile}, //, LibraryMovieEdit, LibraryMovieEditGoBack, LibraryMovieEditCancel},
-		)
-	} else {
-		keyboard = b.createKeyboard(
-			[]string{"Monitored: " + monitorIcon, qualityProfile},                         //, tagsString, "Go back - Show Movie Details", "Cancel - clear command"},
-			[]string{LibraryMovieEditToggleMonitor, LibraryMovieEditToggleQualityProfile}, //, LibraryMovieEdit, LibraryMovieEditGoBack, LibraryMovieEditCancel},
-		)
-	}
+
+	keyboard = b.createKeyboard(
+		[]string{"Monitored: " + monitorIcon, qualityProfile},
+		[]string{LibraryMovieEditToggleMonitor, LibraryMovieEditToggleQualityProfile},
+	)
 
 	var tagsKeyboard [][]tgbotapi.InlineKeyboardButton
 	for _, tag := range command.allTags {
@@ -131,7 +125,7 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 }
 
 func (b *Bot) handleLibraryMovieEditToggleMonitor(update tgbotapi.Update, command *userLibrary) bool {
-	command.movie.Monitored = !command.movie.Monitored
+	command.selectedMonitoring = !command.selectedMonitoring
 	b.setLibraryState(command.chatID, command)
 	return b.showLibraryMovieEdit(update, command)
 }
@@ -154,11 +148,15 @@ func (b *Bot) handleLibraryMovieEditSelectTag(update tgbotapi.Update, command *u
 	}
 
 	// Check if the tag is already selected
-	if !isSelectedTag(command.selectedTags, int(tagID)) {
-		// Add the tag to selectedTags
-		tag := &starr.Tag{ID: int(tagID)} // Create a new starr.Tag with the ID
+	if isSelectedTag(command.selectedTags, tagID) {
+		// If selected, remove the tag from selectedTags (deselect)
+		command.selectedTags = removeTag(command.selectedTags, tagID)
+	} else {
+		// If not selected, add the tag to selectedTags (select)
+		tag := &starr.Tag{ID: tagID} // Create a new starr.Tag with the ID
 		command.selectedTags = append(command.selectedTags, tag)
 	}
+
 	b.setLibraryState(command.chatID, command)
 	return b.showLibraryMovieEdit(update, command)
 }
@@ -189,4 +187,15 @@ func isSelectedTag(selectedTags []*starr.Tag, tagID int) bool {
 		}
 	}
 	return false
+}
+
+// removeTag removes a tag with the given ID from the list of selected tags.
+func removeTag(tags []*starr.Tag, tagID int) []*starr.Tag {
+	var updatedTags []*starr.Tag
+	for _, tag := range tags {
+		if tag.ID != tagID {
+			updatedTags = append(updatedTags, tag)
+		}
+	}
+	return updatedTags
 }

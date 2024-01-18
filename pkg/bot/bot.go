@@ -49,8 +49,10 @@ type userLibrary struct {
 	searchResultsInLibrary map[string]*radarr.Movie
 	filter                 string
 	qualityProfiles        []*radarr.QualityProfile
+	selectedQualityProfile *radarr.QualityProfile
 	allTags                []*starr.Tag
 	selectedTags           []*starr.Tag
+	selectedMonitoring     bool
 	movie                  *radarr.Movie
 	lastSearch             time.Time
 	chatID                 int64
