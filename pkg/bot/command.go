@@ -58,6 +58,10 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		b.setActiveCommand(userID, AddMovieCommand)
 		b.sendSearchResults(command.searchResults, &msg)
 
+	case "movies", "library", "l":
+		b.setActiveCommand(userID, LibraryMenuCommand)
+		b.processLibraryCommand(update, userID, r)
+
 	case "clear", "cancel", "stop":
 		b.clearState(update)
 		msg.Text = "All commands have been cleared"
@@ -99,10 +103,6 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 			break
 		}
 		b.sendUpcoming(upcoming, &msg, bot)
-
-	case "movies", "library":
-		b.setActiveCommand(userID, LibraryMenuCommand)
-		b.processLibraryCommand(update, userID, r)
 
 	case "rss", "RSS":
 		command := radarr.CommandRequest{
@@ -173,10 +173,6 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		msg.Text = "Update All started"
 		b.sendMessage(msg)
 
-	case "getid", "id":
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Your user ID: %d", userID))
-		b.sendMessage(msg)
-
 	case "system", "System", "systemstatus", "Systemstatus":
 		status, err := r.GetSystemStatus()
 		if err != nil {
@@ -189,23 +185,23 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, message)
 		b.sendMessage(msg)
 
+	case "getid", "id":
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Your user ID: %d", userID))
+		b.sendMessage(msg)
+
 	default:
 		msg.Text = fmt.Sprintf("Hello %v!\n", update.Message.From)
 		msg.Text += "Here's a list of commands at your disposal:\n\n"
 		msg.Text += "/q [movie] - searches a movie \n"
+		msg.Text += "/library [movie] - manage movie(s)\n"
 		msg.Text += "/clear \t\t - deletes all sent commands\n"
 		msg.Text += "/free \t\t\t\t - lists free disk space \n"
 		msg.Text += "/delete\t - deletes a movie\n"
 		msg.Text += "/up\t\t\t\t\t\t\t - lists upcoming movies in the next 30 days\n"
-		msg.Text += "/library - lists all movies\n"
-		msg.Text += "/ondisk - lists movies on disk\n"
-		msg.Text += "/missing - lists missing movies\n"
-		msg.Text += "/wanted - lists wanted movies\n"
-		msg.Text += "/monitored - lists monitored movies\n"
-		msg.Text += "/unmonitored - lists unmonitored movies\n"
-		msg.Text += "/rss - performs a RSS sync\n"
+		msg.Text += "/rss \t\t\t\t  - performs a RSS sync\n"
 		msg.Text += "/searchmonitored - searches all monitored movies\n"
 		msg.Text += "/updateall - updates metadata and rescans files/folders\n"
+		msg.Text += "/system - shows your Radarr configuration\n"
 		msg.Text += "/id - shows your Telegram user ID"
 		b.sendMessage(msg)
 	}
