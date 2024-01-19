@@ -62,6 +62,10 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		b.setActiveCommand(userID, LibraryMenuCommand)
 		b.processLibraryCommand(update, userID, r)
 
+	case "delete", "remove", "Delete", "Remove", "d":
+		b.setActiveCommand(userID, DeleteMovieCommand)
+		b.processDeleteCommand(update, userID, r)
+
 	case "clear", "cancel", "stop":
 		b.clearState(update)
 		msg.Text = "All commands have been cleared"
@@ -79,10 +83,6 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		msg.ParseMode = "MarkdownV2"
 		msg.DisableWebPagePreview = true
 		b.sendMessage(msg)
-
-	case "delete", "remove", "Delete", "Remove":
-		b.setActiveCommand(userID, DeleteMovieCommand)
-		b.processDeleteCommand(update, userID, r)
 
 	case "up", "upcoming":
 		calendar := radarr.Calendar{
@@ -194,11 +194,11 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		msg.Text += "Here's a list of commands at your disposal:\n\n"
 		msg.Text += "/q [movie] - searches a movie \n"
 		msg.Text += "/library [movie] - manage movie(s)\n"
-		msg.Text += "/clear \t\t - deletes all sent commands\n"
-		msg.Text += "/free \t\t\t\t - lists free disk space \n"
-		msg.Text += "/delete\t - deletes a movie\n"
-		msg.Text += "/up\t\t\t\t\t\t\t - lists upcoming movies in the next 30 days\n"
-		msg.Text += "/rss \t\t\t\t  - performs a RSS sync\n"
+		msg.Text += "/delete [movie] - deletes a movie\n"
+		msg.Text += "/clear - deletes all sent commands\n"
+		msg.Text += "/free  - lists free disk space \n"
+		msg.Text += "/up\t\t\t\t - lists upcoming movies in the next 30 days\n"
+		msg.Text += "/rss \t\t - performs a RSS sync\n"
 		msg.Text += "/searchmonitored - searches all monitored movies\n"
 		msg.Text += "/updateall - updates metadata and rescans files/folders\n"
 		msg.Text += "/system - shows your Radarr configuration\n"
