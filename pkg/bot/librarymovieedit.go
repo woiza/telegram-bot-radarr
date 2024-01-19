@@ -172,7 +172,7 @@ func (b *Bot) handleLibraryMovieEditSubmitChanges(update tgbotapi.Update, comman
 	text := fmt.Sprintf("Movie '%v' updated\n", command.movie.Title)
 	b.clearState(update)
 	b.sendMessageWithEdit(command, text)
-	return false
+	return true
 }
 
 func getQualityProfileByID(qualityProfiles []*radarr.QualityProfile, id int64) *radarr.QualityProfile {

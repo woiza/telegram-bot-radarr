@@ -12,8 +12,11 @@ import (
 )
 
 const (
-	LibraryMovieEdit   = "LIBRARY_MOVIE_EDIT"
-	LibraryMovieGoBack = "LIBRARY_MOVIE_GOBACK"
+	LibraryMovieDelete    = "LIBRARY_MOVIE_DELETE"
+	LibraryMovieDeleteYes = "LIBRARY_MOVIE_DELETE_YES"
+	LibraryMovieDeleteNo  = "LIBRARY_MOVIE_DELETE_NO"
+	LibraryMovieEdit      = "LIBRARY_MOVIE_EDIT"
+	LibraryMovieGoBack    = "LIBRARY_MOVIE_GOBACK"
 	//LibraryFilteredGoBack        = "LIBRARY_FILTERED_GOBACK" already defined in librarymenu.go
 	LibraryMovieMonitor          = "LIBRARY_MOVIE_MONITOR"
 	LibraryMovieUnmonitor        = "LIBRARY_MOVIE_UNMONITOR"
@@ -56,6 +59,12 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 		return b.handleLibraryMovieUnMonitor(update, command)
 	case LibraryMovieSearch:
 		return b.handleLibraryMovieSearch(update, command)
+	case LibraryMovieDelete:
+		return b.handleLibraryMovieDelete(update, command)
+	case LibraryMovieDeleteYes:
+		return b.handleLibraryMovieDeleteYes(update, command)
+	case LibraryMovieDeleteNo:
+		return b.showLibraryMovieDetail(update, command)
 	case LibraryMovieEdit:
 		return b.handleLibraryMovieEdit(update, command)
 	case LibraryMovieMonitorSearchNow:
@@ -144,13 +153,13 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 	var keyboard tgbotapi.InlineKeyboardMarkup
 	if !movie.Monitored {
 		keyboard = b.createKeyboard(
-			[]string{"Monitor Movie", "Monitor Movie & Search Now", "Edit Movie", "Go back - Show Movies"},
-			[]string{LibraryMovieMonitor, LibraryMovieMonitorSearchNow, LibraryMovieEdit, LibraryMovieGoBack},
+			[]string{"Monitor Movie", "Monitor Movie & Search Now", "Delete Movie", "Edit Movie", "Go back - Show Movies"},
+			[]string{LibraryMovieMonitor, LibraryMovieMonitorSearchNow, LibraryMovieDelete, LibraryMovieEdit, LibraryMovieGoBack},
 		)
 	} else {
 		keyboard = b.createKeyboard(
-			[]string{"Unmonitor Movie", "Search Movie", "Edit Movie", "Go back - Show Movies"},
-			[]string{LibraryMovieUnmonitor, LibraryMovieSearch, LibraryMovieEdit, LibraryMovieGoBack},
+			[]string{"Unmonitor Movie", "Search Movie", "Delete Movie", "Edit Movie", "Go back - Show Movies"},
+			[]string{LibraryMovieUnmonitor, LibraryMovieSearch, LibraryMovieDelete, LibraryMovieEdit, LibraryMovieGoBack},
 		)
 	}
 
@@ -243,8 +252,41 @@ func (b *Bot) handleLibraryMovieMonitorSearchNow(update tgbotapi.Update, command
 	return b.showLibraryMovieDetail(update, command)
 }
 
-func (b *Bot) handleLibraryMovieEdit(update tgbotapi.Update, command *userLibrary) bool {
+func (b *Bot) handleLibraryMovieDelete(update tgbotapi.Update, command *userLibrary) bool {
+	messageText := fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(command.movie.Title), command.movie.ImdbID, command.movie.Year)
+	keyboard := b.createKeyboard(
+		[]string{"Yes, delete this movie", "No, show movie details"},
+		[]string{LibraryMovieDeleteYes, LibraryMovieDeleteNo},
+	)
+	// Send the message containing movie details along with the keyboard
+	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
+		command.chatID,
+		command.messageID,
+		messageText,
+		keyboard,
+	)
+	editMsg.ParseMode = "MarkdownV2"
+	editMsg.DisableWebPagePreview = false
+	b.setLibraryState(command.chatID, command)
+	b.sendMessage(editMsg)
+	return false
 
+}
+
+func (b *Bot) handleLibraryMovieDeleteYes(update tgbotapi.Update, command *userLibrary) bool {
+	err := b.RadarrServer.DeleteMovie(command.movie.ID, *starr.True(), *starr.False())
+	if err != nil {
+		msg := tgbotapi.NewMessage(command.chatID, err.Error())
+		b.sendMessage(msg)
+		return false
+	}
+	text := fmt.Sprintf("Movie '%v' deleted\n", command.movie.Title)
+	b.clearState(update)
+	b.sendMessageWithEdit(command, text)
+	return true
+}
+
+func (b *Bot) handleLibraryMovieEdit(update tgbotapi.Update, command *userLibrary) bool {
 	b.setLibraryState(command.chatID, command)
 	b.setActiveCommand(command.chatID, LibraryMovieEditCommand)
 	return b.showLibraryMovieEdit(update, command)
