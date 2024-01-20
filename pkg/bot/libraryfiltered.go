@@ -153,12 +153,12 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 	var keyboard tgbotapi.InlineKeyboardMarkup
 	if !movie.Monitored {
 		keyboard = b.createKeyboard(
-			[]string{"Monitor Movie", "Monitor Movie & Search Now", "Delete Movie", "Edit Movie", "Go back - Show Movies"},
+			[]string{"Monitor Movie", "Monitor Movie & Search Now", "Delete Movie", "Edit Movie", "\U0001F519"},
 			[]string{LibraryMovieMonitor, LibraryMovieMonitorSearchNow, LibraryMovieDelete, LibraryMovieEdit, LibraryMovieGoBack},
 		)
 	} else {
 		keyboard = b.createKeyboard(
-			[]string{"Unmonitor Movie", "Search Movie", "Delete Movie", "Edit Movie", "Go back - Show Movies"},
+			[]string{"Unmonitor Movie", "Search Movie", "Delete Movie", "Edit Movie", "\U0001F519"},
 			[]string{LibraryMovieUnmonitor, LibraryMovieSearch, LibraryMovieDelete, LibraryMovieEdit, LibraryMovieGoBack},
 		)
 	}

@@ -97,8 +97,8 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 
 	var keyboardSubmitCancelGoBack tgbotapi.InlineKeyboardMarkup
 	keyboardSubmitCancelGoBack = b.createKeyboard(
-		[]string{"Submit - Confirm Changes", "Go back - Show Movie Details", "Cancel - clear command"},
-		[]string{LibraryMovieEditSubmitChanges, LibraryMovieEditGoBack, LibraryMovieEditCancel},
+		[]string{"Submit - Confirm Changes", "Cancel - clear command", "\U0001F519"},
+		[]string{LibraryMovieEditSubmitChanges, LibraryMovieEditCancel, LibraryMovieEditGoBack},
 	)
 
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardSubmitCancelGoBack.InlineKeyboard...)
