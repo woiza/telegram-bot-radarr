@@ -187,20 +187,21 @@ func (b *Bot) showLibraryMenuFiltered(update tgbotapi.Update, command *userLibra
 		return false
 	}
 
+	var inlineKeyboard [][]tgbotapi.InlineKeyboardButton
+	var row []tgbotapi.InlineKeyboardButton
+
 	if len(filteredMovies) == 0 {
-		b.clearState(update)
-		b.sendMessageWithEdit(command, "No movies in your library. All commands have been cleared")
-		return false
+		responseText = "No movies found matching your filter criteria"
+		row = append(row, tgbotapi.NewInlineKeyboardButtonData("Go back - Show library menu", LibraryFilteredGoBack))
+	} else {
+		sort.SliceStable(filteredMovies, func(i, j int) bool {
+			return utils.IgnoreArticles(strings.ToLower(filteredMovies[i].Title)) < utils.IgnoreArticles(strings.ToLower(filteredMovies[j].Title))
+		})
+		inlineKeyboard = b.getMoviesAsInlineKeyboard(filteredMovies)
+		row = append(row, tgbotapi.NewInlineKeyboardButtonData("Go back - Show library menu", LibraryFilteredGoBack))
+		inlineKeyboard = append(inlineKeyboard, row)
 	}
 
-	sort.SliceStable(filteredMovies, func(i, j int) bool {
-		return utils.IgnoreArticles(strings.ToLower(filteredMovies[i].Title)) < utils.IgnoreArticles(strings.ToLower(filteredMovies[j].Title))
-	})
-
-	inlineKeyboard := b.getMoviesAsInlineKeyboard(filteredMovies)
-	var row []tgbotapi.InlineKeyboardButton
-	row = append(row, tgbotapi.NewInlineKeyboardButtonData("Go back - Show library menu", LibraryFilteredGoBack))
-	inlineKeyboard = append(inlineKeyboard, row)
 	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
 		command.chatID,
 		command.messageID,
