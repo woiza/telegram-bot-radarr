@@ -193,6 +193,7 @@ func (b *Bot) showLibraryMenuFiltered(update tgbotapi.Update, command *userLibra
 	if len(filteredMovies) == 0 {
 		responseText = "No movies found matching your filter criteria"
 		row = append(row, tgbotapi.NewInlineKeyboardButtonData("Go back - Show library menu", LibraryFilteredGoBack))
+		inlineKeyboard = append(inlineKeyboard, row)
 	} else {
 		sort.SliceStable(filteredMovies, func(i, j int) bool {
 			return utils.IgnoreArticles(strings.ToLower(filteredMovies[i].Title)) < utils.IgnoreArticles(strings.ToLower(filteredMovies[j].Title))
