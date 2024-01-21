@@ -12,6 +12,13 @@ import (
 	"golift.io/starr/radarr"
 )
 
+const (
+	DeleteMovieYes       = "DELETEMOVIE_YES"
+	DeleteMovieNoSearch  = "DELETEMOVIE_NO_SEARCH"
+	DeleteMovieNoLibrary = "DELETEMOVIE_NO_LIBRARY"
+	DeleteMovieCancel    = "DELETEMOVIE_CANCEL"
+)
+
 func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *radarr.Radarr) {
 	msg := tgbotapi.NewMessage(userID, "Handling delete command... please wait")
 	message, _ := b.sendMessage(msg)
@@ -157,27 +164,25 @@ func (b *Bot) processMovieSelectionForDelete(update tgbotapi.Update, command *us
 
 	var keyboard tgbotapi.InlineKeyboardMarkup
 	if len(command.searchResultsInLibrary) > 0 {
-		buttons := make([][]tgbotapi.InlineKeyboardButton, 4)
-		buttons[0] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Yes, delete this movie", "DELETEMOVIE_YES"))
-		buttons[1] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("No, show search results", "DELETEMOVIE_NO_SEARCH"))
-		buttons[2] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("No, show complete library", "DELETEMOVIE_NO_LIBRARY"))
-		buttons[3] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Cancel, clear command", "DELETEMOVIE_CANCEL"))
-		keyboard = tgbotapi.NewInlineKeyboardMarkup(buttons...)
+		keyboard = b.createKeyboard(
+			[]string{"Yes, delete this movie", "No, show search results", "No, show complete library", "Cancel, clear command"},
+			[]string{DeleteMovieYes, DeleteMovieNoSearch, DeleteMovieNoLibrary, DeleteMovieCancel},
+		)
 	} else {
-		buttons := make([][]tgbotapi.InlineKeyboardButton, 3)
-		buttons[0] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Yes, delete this movie", "DELETEMOVIE_YES"))
-		buttons[1] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("No, show complete library", "DELETEMOVIE_NO_LIBRARY"))
-		buttons[2] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Cancel, clear command", "DELETEMOVIE_CANCEL"))
-		keyboard = tgbotapi.NewInlineKeyboardMarkup(buttons...)
+		keyboard = b.createKeyboard(
+			[]string{"Yes, delete this movie", "No, show complete library", "Cancel, clear command"},
+			[]string{DeleteMovieYes, DeleteMovieNoLibrary, DeleteMovieCancel},
+		)
 	}
 
-	// Create an edit message request.
-	editMsg := tgbotapi.NewEditMessageText(
+	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
 		command.chatID,
 		command.messageID,
 		fmt.Sprintf("Do you want to delete the following movie including all files?\n\n[%v](https://www.imdb.com/title/%v) \\- _%v_\n",
 			utils.Escape(command.movie.Title), command.movie.ImdbID, command.movie.Year),
+		keyboard,
 	)
+
 	editMsg.ParseMode = "MarkdownV2"
 	editMsg.DisableWebPagePreview = false
 	editMsg.ReplyMarkup = &keyboard
@@ -189,13 +194,13 @@ func (b *Bot) processMovieSelectionForDelete(update tgbotapi.Update, command *us
 
 func (b *Bot) processConfirmationForDelete(update tgbotapi.Update, command *userDeleteMovie) bool {
 	switch update.CallbackQuery.Data {
-	case "DELETEMOVIE_YES":
+	case DeleteMovieYes:
 		return b.handleDeleteConfirmationYes(update, command)
-	case "DELETEMOVIE_NO_SEARCH":
+	case DeleteMovieNoSearch:
 		return b.handleDeleteConfirmationNoSearchResults(update, command)
-	case "DELETEMOVIE_NO_LIBRARY":
+	case DeleteMovieNoLibrary:
 		return b.handleDeleteConfirmationNoLibrary(update, command)
-	case "DELETEMOVIE_CANCEL":
+	case DeleteMovieCancel:
 		return b.handleDeleteConfirmationCancel(update, command)
 	default:
 		command.confirmation = false
