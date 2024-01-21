@@ -158,8 +158,8 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 func (b *Bot) processMovieSelectionForDelete(update tgbotapi.Update, command *userDeleteMovie) bool {
 	// if called in processDeleteCommand update has no CallbackQuery and command.movie is set in inprocessDeleteCommand
 	if command.movie == nil {
-		movie := command.library[update.CallbackQuery.Data]
-		command.movie = movie
+		movieIDStr := strings.TrimPrefix(update.CallbackQuery.Data, "TMDBID_")
+		command.movie = command.library[movieIDStr]
 	}
 
 	var keyboard tgbotapi.InlineKeyboardMarkup
