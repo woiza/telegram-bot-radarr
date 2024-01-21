@@ -77,7 +77,8 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrary) bool {
 	var movie *radarr.Movie
 	if command.movie == nil {
-		movie = command.libraryFiltered[update.CallbackQuery.Data]
+		movieIDStr := strings.TrimPrefix(update.CallbackQuery.Data, "TMDBID_")
+		movie = command.libraryFiltered[movieIDStr]
 		command.movie = movie
 
 	} else {
