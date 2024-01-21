@@ -133,7 +133,7 @@ func (b *Bot) getMoviesAsInlineKeyboard(movies []*radarr.Movie) [][]tgbotapi.Inl
 	for _, movie := range movies {
 		button := tgbotapi.NewInlineKeyboardButtonData(
 			fmt.Sprintf("%v - %v", movie.Title, movie.Year),
-			strconv.Itoa(int(movie.TmdbID)),
+			"TMDBID_"+strconv.Itoa(int(movie.TmdbID)),
 		)
 		row := []tgbotapi.InlineKeyboardButton{button}
 		inlineKeyboard = append(inlineKeyboard, row)

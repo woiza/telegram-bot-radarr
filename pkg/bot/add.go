@@ -12,6 +12,52 @@ import (
 	"golift.io/starr/radarr"
 )
 
+func (b *Bot) processAddCommand(update tgbotapi.Update, userID int64, r *radarr.Radarr) {
+	msg := tgbotapi.NewMessage(userID, "Handling add movie command... please wait")
+	message, _ := b.sendMessage(msg)
+	command := userAddMovie{}
+	command.chatID = message.Chat.ID
+	command.messageID = message.MessageID
+
+	criteria := update.Message.CommandArguments()
+	if len(criteria) < 1 {
+		b.sendMessageWithEdit(&command, "Please provide a search criteria /q [query]")
+		return
+	}
+	searchResults, err := r.Lookup(criteria)
+	if err != nil {
+		msg := tgbotapi.NewMessage(userID, err.Error())
+		b.sendMessage(msg)
+		return
+	}
+
+	b.handleAddMovieSearchResults(update, searchResults, &command)
+}
+
+func (b *Bot) handleAddMovieSearchResults(update tgbotapi.Update, searchResults []*radarr.Movie, command *userAddMovie) {
+	if len(searchResults) == 0 {
+		b.sendMessageWithEdit(command, "No movies found matching your search criteria")
+		return
+	}
+	if len(searchResults) > 25 {
+		b.sendMessageWithEdit(command, "Result size too large, please narrow down your search criteria")
+		return
+	}
+
+	command.searchResults = make(map[string]*radarr.Movie, len(searchResults))
+	for _, movie := range searchResults {
+		tmdbID := strconv.Itoa(int(movie.TmdbID))
+		command.searchResults[tmdbID] = movie
+	}
+
+	b.setAddMovieState(command.chatID, command)
+	b.setActiveCommand(command.chatID, AddMovieCommand)
+}
+
+func (b *Bot) showAddMovieSearchResults(update tgbotapi.Update) bool {
+	return false
+}
+
 func (b *Bot) addMovie(update tgbotapi.Update) bool {
 	userID, err := b.getUserID(update)
 	if err != nil {

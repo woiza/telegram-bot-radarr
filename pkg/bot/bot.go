@@ -33,6 +33,8 @@ type userAddMovie struct {
 	selectedTags  []*starr.Tag
 	tagDone       bool
 	movieAdded    bool
+	chatID        int64
+	messageID     int
 }
 
 type userDeleteMovie struct {
@@ -97,14 +99,14 @@ func (c *userDeleteMovie) GetMessageID() int {
 	return c.messageID
 }
 
-// Implement the interface for userDelete
-// func (c *userAddMovie) GetChatID() int64 {
-// 	return c.chatID
-// }
+// Implement the interface for userAddMovie
+func (c *userAddMovie) GetChatID() int64 {
+	return c.chatID
+}
 
-// func (c *userAddMovie) GetMessageID() int {
-// 	return c.messageID
-// }
+func (c *userAddMovie) GetMessageID() int {
+	return c.messageID
+}
 
 func New(config *config.Config, botAPI *tgbotapi.BotAPI, radarrServer *radarr.Radarr) *Bot {
 	return &Bot{
