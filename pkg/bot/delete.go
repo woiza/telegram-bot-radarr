@@ -285,11 +285,7 @@ func (b *Bot) handleDeleteMovieSelection(update tgbotapi.Update, command *userDe
 	}
 	b.setDeleteMovieState(command.chatID, command)
 
-	if command.searchResultsInLibrary != nil {
-		return b.showDeleteMovieSelection(update, command)
-	} else {
-		return b.showDeleteMovieSelection(update, command)
-	}
+	return b.showDeleteMovieSelection(update, command)
 }
 
 func isSelectedMovie(selectedMovies []*radarr.Movie, MovieID int64) bool {
