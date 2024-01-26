@@ -287,8 +287,8 @@ func (b *Bot) handleDeleteMovieSelection(update tgbotapi.Update, command *userDe
 
 	if command.searchResultsInLibrary != nil {
 		return b.showDeleteMovieSelection(update, command)
-	} else {
-		return b.showDeleteMovieSelection(update, command)
+	} 
+	return b.showDeleteMovieSelection(update, command)
 	}
 }
 
