@@ -275,12 +275,12 @@ func (b *Bot) handleDeleteMovieSelection(update tgbotapi.Update, command *userDe
 	movie := command.library[movieIDStr]
 
 	// Check if the movie is already selected
+	// If not selected, add the movie to selectedMovies (select)
+	command.selectedMovies = append(command.selectedMovies, movie)
+	// If selected, remove the movie from selectedMovies (deselect)
 	if isSelectedMovie(command.selectedMovies, movie.ID) {
 		// If selected, remove the movie from selectedMovies (deselect)
 		command.selectedMovies = removeMovie(command.selectedMovies, movie.ID)
-	} else {
-		// If not selected, add the movie to selectedMovies (select)
-		command.selectedMovies = append(command.selectedMovies, movie)
 	}
 
 	b.setDeleteMovieState(command.chatID, command)
