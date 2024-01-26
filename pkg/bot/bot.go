@@ -40,6 +40,7 @@ type userAddMovie struct {
 type userDeleteMovie struct {
 	library                map[string]*radarr.Movie
 	searchResultsInLibrary map[string]*radarr.Movie
+	selectedMovies         []*radarr.Movie
 	movie                  *radarr.Movie
 	confirmation           bool
 	chatID                 int64
