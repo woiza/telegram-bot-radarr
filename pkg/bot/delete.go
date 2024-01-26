@@ -272,7 +272,7 @@ func (b *Bot) handleDeleteMovieYes(update tgbotapi.Update, command *userDeleteMo
 	return true
 }
 
-func (b *Bot) handleLDeleteMovieSelection(update tgbotapi.Update, command *userDeleteMovie) bool {
+func (b *Bot) handleDeleteMovieSelection(update tgbotapi.Update, command *userDeleteMovie) bool {
 	movieIDStr := strings.TrimPrefix(update.CallbackQuery.Data, "TMDBID_")
 	movie := command.library[movieIDStr]
 
