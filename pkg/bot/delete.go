@@ -16,6 +16,7 @@ const (
 	DeleteMovieCancel  = "DELETEMOVIE_CANCEL"
 	DeleteMovieGoBack  = "DELETEMOVIE_GOBACK"
 	DeleteMovieYes     = "DELETEMOVIE_YES"
+	DeleteMovieTMDBID  = "DELETEMOVIE_TMDBID_"
 )
 
 func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *radarr.Radarr) {
@@ -82,9 +83,9 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 		b.sendMessageWithEdit(command, CommandsCleared)
 		return false
 	default:
-		// Check if it starts with "TMDBID_"
-		if strings.HasPrefix(update.CallbackQuery.Data, "TMDBID_") {
-			return b.handleLDeleteMovieSelection(update, command)
+		// Check if it starts with DELETEMOVIE_TMDBID_
+		if strings.HasPrefix(update.CallbackQuery.Data, DeleteMovieTMDBID) {
+			return b.handleDeleteMovieSelection(update, command)
 		}
 		return false
 	}
@@ -120,7 +121,7 @@ func (b *Bot) showDeleteMovieSelection(update tgbotapi.Update, command *userDele
 		}
 
 		row := []tgbotapi.InlineKeyboardButton{
-			tgbotapi.NewInlineKeyboardButtonData(buttonText, "TMDBID_"+strconv.Itoa(int(movie.TmdbID))),
+			tgbotapi.NewInlineKeyboardButtonData(buttonText, DeleteMovieTMDBID+strconv.Itoa(int(movie.TmdbID))),
 		}
 		movieKeyboard = append(movieKeyboard, row)
 	}
@@ -271,24 +272,23 @@ func (b *Bot) handleDeleteMovieYes(update tgbotapi.Update, command *userDeleteMo
 }
 
 func (b *Bot) handleDeleteMovieSelection(update tgbotapi.Update, command *userDeleteMovie) bool {
-	movieIDStr := strings.TrimPrefix(update.CallbackQuery.Data, "TMDBID_")
+	movieIDStr := strings.TrimPrefix(update.CallbackQuery.Data, DeleteMovieTMDBID)
 	movie := command.library[movieIDStr]
 
 	// Check if the movie is already selected
-	// If not selected, add the movie to selectedMovies (select)
-	command.selectedMovies = append(command.selectedMovies, movie)
-	// If selected, remove the movie from selectedMovies (deselect)
 	if isSelectedMovie(command.selectedMovies, movie.ID) {
 		// If selected, remove the movie from selectedMovies (deselect)
 		command.selectedMovies = removeMovie(command.selectedMovies, movie.ID)
+	} else {
+		// If not selected, add the movie to selectedMovies (select)
+		command.selectedMovies = append(command.selectedMovies, movie)
 	}
-
 	b.setDeleteMovieState(command.chatID, command)
 
 	if command.searchResultsInLibrary != nil {
 		return b.showDeleteMovieSelection(update, command)
-	} 
-	return b.showDeleteMovieSelection(update, command)
+	} else {
+		return b.showDeleteMovieSelection(update, command)
 	}
 }
 
