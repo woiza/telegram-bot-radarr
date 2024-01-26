@@ -95,14 +95,12 @@ func (b *Bot) showDeleteMovieSelection(update tgbotapi.Update, command *userDele
 
 	// Convert the map values (movies) to a slice
 	var movies []*radarr.Movie
+	moviesLibrary := command.library
 	if len(command.searchResultsInLibrary) > 0 {
-		for _, movie := range command.searchResultsInLibrary {
-			movies = append(movies, movie)
-		}
-	} else {
-		for _, movie := range command.library {
-			movies = append(movies, movie)
-		}
+		moviesLibrary = command.searchResultsInLibrary
+	}
+	for _, movie := range moviesLibrary {
+		movies = append(movies, movie)
 	}
 
 	// Sort the movies alphabetically based on their titles
