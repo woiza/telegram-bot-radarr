@@ -60,7 +60,7 @@ func (b *Bot) processAddCommand(update tgbotapi.Update, userID int64, r *radarr.
 
 	b.setAddMovieState(command.chatID, &command)
 	b.setActiveCommand(command.chatID, AddMovieCommand)
-	b.showAddMovieSearchResults(update, command)
+	b.showAddMovieSearchResults(update, &command)
 }
 
 func (b *Bot) addMovie(update tgbotapi.Update) bool {
@@ -76,34 +76,34 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 	switch update.CallbackQuery.Data {
 	case AddMovieYes:
 		b.setActiveCommand(userID, AddMovieCommand)
-		b.handleAddMovieYes(update, *command)
+		b.handleAddMovieYes(update, command)
 	case AddMovieGoBack:
 		b.setAddMovieState(command.chatID, command)
-		b.showAddMovieSearchResults(update, *command)
+		b.showAddMovieSearchResults(update, command)
 	case AddMovieCancel:
 		b.clearState(update)
 		b.sendMessageWithEdit(command, CommandsCleared)
 		return false
 	case AddMovieTagsDone:
-		b.showAddMovieAddOptions(update, *command)
+		b.showAddMovieAddOptions(update, command)
 	case AddMovieMonSea:
-		b.handleAddMovieMonSea(update, *command)
+		b.handleAddMovieMonSea(update, command)
 	case AddMovieMon:
-		b.handleAddMovieMon(update, *command)
+		b.handleAddMovieMon(update, command)
 	case AddMovieUnMon:
-		b.handleAddMovieUnMon(update, *command)
+		b.handleAddMovieUnMon(update, command)
 	case AddMovieColSea:
-		b.handleAddMovieColSea(update, *command)
+		b.handleAddMovieColSea(update, command)
 	case AddMovieColMon:
-		b.handleAddMovieColMon(update, *command)
+		b.handleAddMovieColMon(update, command)
 	default:
 		// Check if it starts with "PROFILE_"
 		if strings.HasPrefix(update.CallbackQuery.Data, "PROFILE_") {
-			return b.handleAddMovieProfile(update, *command)
+			return b.handleAddMovieProfile(update, command)
 		}
 		// Check if it starts with "PROFILE_"
 		if strings.HasPrefix(update.CallbackQuery.Data, "ROOTFOLDER_") {
-			return b.handleAddMovieRootFolder(update, *command)
+			return b.handleAddMovieRootFolder(update, command)
 		}
 		// Check if it starts with "TAG_"
 		if strings.HasPrefix(update.CallbackQuery.Data, "TAG_") {
@@ -111,14 +111,14 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 		}
 		// Check if it starts with "TMDBID_"
 		if strings.HasPrefix(update.CallbackQuery.Data, "TMDBID_") {
-			return b.addMovieDetails(update, *command)
+			return b.addMovieDetails(update, command)
 		}
-		return b.showAddMovieSearchResults(update, *command)
+		return b.showAddMovieSearchResults(update, command)
 	}
 	return false
 }
 
-func (b *Bot) showAddMovieSearchResults(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) showAddMovieSearchResults(update tgbotapi.Update, command *userAddMovie) bool {
 
 	// Extract movies from the map
 	movies := make([]*radarr.Movie, 0, len(command.searchResults))
@@ -165,12 +165,12 @@ func (b *Bot) showAddMovieSearchResults(update tgbotapi.Update, command userAddM
 	)
 	editMsg.ParseMode = "MarkdownV2"
 	editMsg.DisableWebPagePreview = true
-	b.setAddMovieState(command.chatID, &command)
+	b.setAddMovieState(command.chatID, command)
 	b.sendMessage(editMsg)
 	return false
 }
 
-func (b *Bot) addMovieDetails(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) addMovieDetails(update tgbotapi.Update, command *userAddMovie) bool {
 	movieIDStr := strings.TrimPrefix(update.CallbackQuery.Data, "TMDBID_")
 	command.movie = command.searchResults[movieIDStr]
 
@@ -191,15 +191,15 @@ func (b *Bot) addMovieDetails(update tgbotapi.Update, command userAddMovie) bool
 	)
 	editMsg.ParseMode = "MarkdownV2"
 	editMsg.DisableWebPagePreview = false
-	b.setAddMovieState(command.chatID, &command)
+	b.setAddMovieState(command.chatID, command)
 	b.sendMessage(editMsg)
 	return false
 }
 
-func (b *Bot) handleAddMovieYes(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) handleAddMovieYes(update tgbotapi.Update, command *userAddMovie) bool {
 	//movie already in library...
 	if command.movie.ID != 0 {
-		b.sendMessageWithEdit(&command, "Movie already in library\nAll commands have been cleared")
+		b.sendMessageWithEdit(command, "Movie already in library\nAll commands have been cleared")
 		return false
 	}
 
@@ -211,7 +211,7 @@ func (b *Bot) handleAddMovieYes(update tgbotapi.Update, command userAddMovie) bo
 		return false
 	}
 	if len(profiles) == 0 {
-		b.sendMessageWithEdit(&command, "No quality profile(s) found on your radarr server.\nAll commands have been cleared.")
+		b.sendMessageWithEdit(command, "No quality profile(s) found on your radarr server.\nAll commands have been cleared.")
 		b.clearState(update)
 	}
 	if len(profiles) == 1 {
@@ -230,7 +230,7 @@ func (b *Bot) handleAddMovieYes(update tgbotapi.Update, command userAddMovie) bo
 		command.rootFolder = rootFolders[0].Path
 	}
 	if len(rootFolders) == 0 {
-		b.sendMessageWithEdit(&command, "No root folder(s) found on your radarr server.\nAll commands have been cleared.")
+		b.sendMessageWithEdit(command, "No root folder(s) found on your radarr server.\nAll commands have been cleared.")
 		b.clearState(update)
 	}
 	command.allRootFolders = rootFolders
@@ -244,11 +244,11 @@ func (b *Bot) handleAddMovieYes(update tgbotapi.Update, command userAddMovie) bo
 	}
 	command.allTags = tags
 
-	b.setAddMovieState(command.chatID, &command)
+	b.setAddMovieState(command.chatID, command)
 	return b.showAddMovieProfiles(update, command)
 }
 
-func (b *Bot) showAddMovieProfiles(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) showAddMovieProfiles(update tgbotapi.Update, command *userAddMovie) bool {
 	// If there is only one profile, skip this step
 	if len(command.allProfiles) == 1 {
 		return b.showAddMovieRootFolders(update, command)
@@ -271,14 +271,14 @@ func (b *Bot) showAddMovieProfiles(update tgbotapi.Update, command userAddMovie)
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardCancelGoBack.InlineKeyboard...)
 	messageText.WriteString("Select quality profile:")
 	b.sendMessageWithEditAndKeyboard(
-		&command,
+		command,
 		keyboard,
 		messageText.String(),
 	)
 	return false
 }
 
-func (b *Bot) handleAddMovieProfile(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) handleAddMovieProfile(update tgbotapi.Update, command *userAddMovie) bool {
 	profileIDStr := strings.TrimPrefix(update.CallbackQuery.Data, "PROFILE_")
 	// Parse the profile ID
 	profileID, err := strconv.Atoi(profileIDStr)
@@ -289,14 +289,14 @@ func (b *Bot) handleAddMovieProfile(update tgbotapi.Update, command userAddMovie
 		return false
 	}
 	command.profileID = int64(profileID)
-	b.setAddMovieState(command.chatID, &command)
+	b.setAddMovieState(command.chatID, command)
 	return b.showAddMovieRootFolders(update, command)
 }
 
-func (b *Bot) showAddMovieRootFolders(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) showAddMovieRootFolders(update tgbotapi.Update, command *userAddMovie) bool {
 	// If there is only one root folder, skip this step
 	if len(command.allRootFolders) == 1 {
-		return b.showAddMovieTags(update, &command)
+		return b.showAddMovieTags(update, command)
 	}
 	var rootFolderKeyboard [][]tgbotapi.InlineKeyboardButton
 	for _, rootFolder := range command.allRootFolders {
@@ -316,7 +316,7 @@ func (b *Bot) showAddMovieRootFolders(update tgbotapi.Update, command userAddMov
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardCancelGoBack.InlineKeyboard...)
 	messageText.WriteString("Select root folder:")
 	b.sendMessageWithEditAndKeyboard(
-		&command,
+		command,
 		keyboard,
 		messageText.String(),
 	)
@@ -324,13 +324,17 @@ func (b *Bot) showAddMovieRootFolders(update tgbotapi.Update, command userAddMov
 
 }
 
-func (b *Bot) handleAddMovieRootFolder(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) handleAddMovieRootFolder(update tgbotapi.Update, command *userAddMovie) bool {
 	command.rootFolder = strings.TrimPrefix(update.CallbackQuery.Data, "ROOTFOLDER_")
-	b.setAddMovieState(command.chatID, &command)
-	return b.showAddMovieTags(update, &command)
+	b.setAddMovieState(command.chatID, command)
+	return b.showAddMovieTags(update, command)
 }
 
 func (b *Bot) showAddMovieTags(update tgbotapi.Update, command *userAddMovie) bool {
+	// If there are no tags, skip this step
+	if len(command.allTags) == 0 {
+		return b.showAddMovieAddOptions(update, command)
+	}
 	var tagsKeyboard [][]tgbotapi.InlineKeyboardButton
 	for _, tag := range command.allTags {
 		// Check if the tag is selected
@@ -396,7 +400,7 @@ func (b *Bot) handleAddMovieEditSelectTag(update tgbotapi.Update, command *userA
 	return b.showAddMovieTags(update, command)
 }
 
-func (b *Bot) showAddMovieAddOptions(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) showAddMovieAddOptions(update tgbotapi.Update, command *userAddMovie) bool {
 	keyboard := b.createKeyboard(
 		[]string{"Add movie monitored + search now", "Add movie monitored", "Add movie unmonitored", "Add collection monitored + search now", "Add collection monitored", "Cancel, clear command"},
 		[]string{AddMovieMonSea, AddMovieMon, AddMovieUnMon, AddMovieColSea, AddMovieColMon, AddMovieCancel},
@@ -409,62 +413,62 @@ func (b *Bot) showAddMovieAddOptions(update tgbotapi.Update, command userAddMovi
 	)
 	editMsg.ParseMode = "MarkdownV2"
 	editMsg.DisableWebPagePreview = true
-	b.setAddMovieState(command.chatID, &command)
+	b.setAddMovieState(command.chatID, command)
 	b.sendMessage(editMsg)
 	return false
 }
 
-func (b *Bot) handleAddMovieMonSea(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) handleAddMovieMonSea(update tgbotapi.Update, command *userAddMovie) bool {
 	command.monitored = *starr.True()
 	command.addMovieOptions = &radarr.AddMovieOptions{
 		SearchForMovie: *starr.True(),
 		Monitor:        "movieOnly",
 	}
-	b.setAddMovieState(command.chatID, &command)
+	b.setAddMovieState(command.chatID, command)
 	return b.addMovieToLibrary(update, command)
 }
 
-func (b *Bot) handleAddMovieMon(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) handleAddMovieMon(update tgbotapi.Update, command *userAddMovie) bool {
 	command.monitored = *starr.True()
 	command.addMovieOptions = &radarr.AddMovieOptions{
 		SearchForMovie: *starr.False(),
 		Monitor:        "movieOnly",
 	}
-	b.setAddMovieState(command.chatID, &command)
+	b.setAddMovieState(command.chatID, command)
 	return b.addMovieToLibrary(update, command)
 }
 
-func (b *Bot) handleAddMovieUnMon(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) handleAddMovieUnMon(update tgbotapi.Update, command *userAddMovie) bool {
 	command.monitored = *starr.False()
 	command.addMovieOptions = &radarr.AddMovieOptions{
 		SearchForMovie: *starr.False(),
 		Monitor:        "none",
 	}
-	b.setAddMovieState(command.chatID, &command)
+	b.setAddMovieState(command.chatID, command)
 	return b.addMovieToLibrary(update, command)
 }
 
-func (b *Bot) handleAddMovieColSea(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) handleAddMovieColSea(update tgbotapi.Update, command *userAddMovie) bool {
 	command.monitored = *starr.True()
 	command.addMovieOptions = &radarr.AddMovieOptions{
 		SearchForMovie: *starr.True(),
 		Monitor:        "movieAndCollection",
 	}
-	b.setAddMovieState(command.chatID, &command)
+	b.setAddMovieState(command.chatID, command)
 	return b.addMovieToLibrary(update, command)
 }
 
-func (b *Bot) handleAddMovieColMon(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) handleAddMovieColMon(update tgbotapi.Update, command *userAddMovie) bool {
 	command.monitored = *starr.True()
 	command.addMovieOptions = &radarr.AddMovieOptions{
 		SearchForMovie: *starr.False(),
 		Monitor:        "movieAndCollection",
 	}
-	b.setAddMovieState(command.chatID, &command)
+	b.setAddMovieState(command.chatID, command)
 	return b.addMovieToLibrary(update, command)
 }
 
-func (b *Bot) addMovieToLibrary(update tgbotapi.Update, command userAddMovie) bool {
+func (b *Bot) addMovieToLibrary(update tgbotapi.Update, command *userAddMovie) bool {
 	var addMovieInput radarr.AddMovieInput
 	var tagIDs []int
 	for _, tag := range command.selectedTags {
@@ -501,7 +505,7 @@ func (b *Bot) addMovieToLibrary(update tgbotapi.Update, command userAddMovie) bo
 	} else {
 		messageText = fmt.Sprintf("Movie '%v' added\n", movies[0].Title)
 	}
-	b.sendMessageWithEdit(&command, messageText)
+	b.sendMessageWithEdit(command, messageText)
 	b.clearState(update)
 	return true
 }
