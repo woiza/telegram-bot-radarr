@@ -179,8 +179,8 @@ func (b *Bot) addMovieDetails(update tgbotapi.Update, command *userAddMovie) boo
 
 	text.WriteString(fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(command.movie.Title), command.movie.ImdbID, command.movie.Year))
 	keyboard := b.createKeyboard(
-		[]string{"Yes, add this movie", "Cancel, clear command", "\U0001F519"},
-		[]string{AddMovieYes, AddMovieCancel, AddMovieGoBack},
+		[]string{"Yes, add this movie", "\U0001F519"},
+		[]string{AddMovieYes, AddMovieGoBack},
 	)
 
 	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
@@ -263,12 +263,12 @@ func (b *Bot) showAddMovieProfiles(update tgbotapi.Update, command *userAddMovie
 
 	var messageText strings.Builder
 	var keyboard tgbotapi.InlineKeyboardMarkup
-	keyboardCancelGoBack := b.createKeyboard(
-		[]string{"Cancel - clear command", "\U0001F519"},
-		[]string{AddMovieCancel, AddMovieGoBack},
+	keyboardGoBack := b.createKeyboard(
+		[]string{"\U0001F519"},
+		[]string{AddMovieGoBack},
 	)
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, profileKeyboard...)
-	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardCancelGoBack.InlineKeyboard...)
+	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardGoBack.InlineKeyboard...)
 	messageText.WriteString("Select quality profile:")
 	b.sendMessageWithEditAndKeyboard(
 		command,
@@ -308,12 +308,12 @@ func (b *Bot) showAddMovieRootFolders(update tgbotapi.Update, command *userAddMo
 
 	var messageText strings.Builder
 	var keyboard tgbotapi.InlineKeyboardMarkup
-	keyboardCancelGoBack := b.createKeyboard(
-		[]string{"Cancel - clear command", "\U0001F519"},
-		[]string{AddMovieCancel, AddMovieGoBack},
+	keyboardGoBack := b.createKeyboard(
+		[]string{"\U0001F519"},
+		[]string{AddMovieGoBack},
 	)
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, rootFolderKeyboard...)
-	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardCancelGoBack.InlineKeyboard...)
+	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardGoBack.InlineKeyboard...)
 	messageText.WriteString("Select root folder:")
 	b.sendMessageWithEditAndKeyboard(
 		command,
@@ -357,8 +357,8 @@ func (b *Bot) showAddMovieTags(update tgbotapi.Update, command *userAddMovie) bo
 
 	var keyboardSubmitCancelGoBack tgbotapi.InlineKeyboardMarkup
 	keyboardSubmitCancelGoBack = b.createKeyboard(
-		[]string{"Done - Continue", "Cancel - clear command", "\U0001F519"},
-		[]string{AddMovieTagsDone, AddMovieCancel, AddMovieGoBack},
+		[]string{"Done - Continue", "\U0001F519"},
+		[]string{AddMovieTagsDone, AddMovieGoBack},
 	)
 
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardSubmitCancelGoBack.InlineKeyboard...)
@@ -402,8 +402,8 @@ func (b *Bot) handleAddMovieEditSelectTag(update tgbotapi.Update, command *userA
 
 func (b *Bot) showAddMovieAddOptions(update tgbotapi.Update, command *userAddMovie) bool {
 	keyboard := b.createKeyboard(
-		[]string{"Add movie monitored + search now", "Add movie monitored", "Add movie unmonitored", "Add collection monitored + search now", "Add collection monitored", "Cancel, clear command"},
-		[]string{AddMovieMonSea, AddMovieMon, AddMovieUnMon, AddMovieColSea, AddMovieColMon, AddMovieCancel},
+		[]string{"Add movie monitored + search now", "Add movie monitored", "Add movie unmonitored", "Add collection monitored + search now", "Add collection monitored", "Cancel, clear command", "\U0001F519"},
+		[]string{AddMovieMonSea, AddMovieMon, AddMovieUnMon, AddMovieColSea, AddMovieColMon, AddMovieCancel, AddMovieGoBack},
 	)
 	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
 		command.chatID,
