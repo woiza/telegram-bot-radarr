@@ -13,15 +13,19 @@ import (
 )
 
 const (
-	AddMovieYes      = "ADDMOVIE_YES"
-	AddMovieGoBack   = "ADDMOVIE_GOBACK"
-	AddMovieCancel   = "ADDMOVIE_CANCEL"
-	AddMovieTagsDone = "ADDMOVIE_TAGS_DONE"
-	AddMovieMonSea   = "ADDMOVIE_MONSEA"
-	AddMovieMon      = "ADDMOVIE_MON"
-	AddMovieUnMon    = "ADDMOVIE_UNMON"
-	AddMovieColSea   = "ADDMOVIE_COLSEA"
-	AddMovieColMon   = "ADDMOVIE_COLMON"
+	AddMovieYes              = "ADDMOVIE_YES"
+	AddMovieGoBack           = "ADDMOVIE_GOBACK"
+	AddMovieProfileGoBack    = "ADDMOVIE_QUALITY_GOBACK"
+	AddMovieRootFolderGoBack = "ADDMOVIE_ROOTFOLDER_GOBACK"
+	AddMovieTagsGoBack       = "ADDMOVIE_TAGSGOBACK"
+	AddMovieAddOptionsGoBack = "ADDMOVIE_ADDOPTIONS_GOBACK"
+	AddMovieCancel           = "ADDMOVIE_CANCEL"
+	AddMovieTagsDone         = "ADDMOVIE_TAGS_DONE"
+	AddMovieMonSea           = "ADDMOVIE_MONSEA"
+	AddMovieMon              = "ADDMOVIE_MON"
+	AddMovieUnMon            = "ADDMOVIE_UNMON"
+	AddMovieColSea           = "ADDMOVIE_COLSEA"
+	AddMovieColMon           = "ADDMOVIE_COLMON"
 )
 
 func (b *Bot) processAddCommand(update tgbotapi.Update, userID int64, r *radarr.Radarr) {
@@ -80,6 +84,14 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 	case AddMovieGoBack:
 		b.setAddMovieState(command.chatID, command)
 		b.showAddMovieSearchResults(update, command)
+	case AddMovieProfileGoBack:
+		b.showAddMovieSearchResults(update, command)
+	case AddMovieRootFolderGoBack:
+		b.showAddMovieProfiles(update, command)
+	case AddMovieTagsGoBack:
+		b.showAddMovieRootFolders(update, command)
+	case AddMovieAddOptionsGoBack:
+		b.showAddMovieTags(update, command)
 	case AddMovieCancel:
 		b.clearState(update)
 		b.sendMessageWithEdit(command, CommandsCleared)
@@ -265,7 +277,7 @@ func (b *Bot) showAddMovieProfiles(update tgbotapi.Update, command *userAddMovie
 	var keyboard tgbotapi.InlineKeyboardMarkup
 	keyboardGoBack := b.createKeyboard(
 		[]string{"\U0001F519"},
-		[]string{AddMovieGoBack},
+		[]string{AddMovieProfileGoBack},
 	)
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, profileKeyboard...)
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardGoBack.InlineKeyboard...)
@@ -310,7 +322,7 @@ func (b *Bot) showAddMovieRootFolders(update tgbotapi.Update, command *userAddMo
 	var keyboard tgbotapi.InlineKeyboardMarkup
 	keyboardGoBack := b.createKeyboard(
 		[]string{"\U0001F519"},
-		[]string{AddMovieGoBack},
+		[]string{AddMovieRootFolderGoBack},
 	)
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, rootFolderKeyboard...)
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardGoBack.InlineKeyboard...)
@@ -358,7 +370,7 @@ func (b *Bot) showAddMovieTags(update tgbotapi.Update, command *userAddMovie) bo
 	var keyboardSubmitCancelGoBack tgbotapi.InlineKeyboardMarkup
 	keyboardSubmitCancelGoBack = b.createKeyboard(
 		[]string{"Done - Continue", "\U0001F519"},
-		[]string{AddMovieTagsDone, AddMovieGoBack},
+		[]string{AddMovieTagsDone, AddMovieTagsGoBack},
 	)
 
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardSubmitCancelGoBack.InlineKeyboard...)
@@ -403,7 +415,7 @@ func (b *Bot) handleAddMovieEditSelectTag(update tgbotapi.Update, command *userA
 func (b *Bot) showAddMovieAddOptions(update tgbotapi.Update, command *userAddMovie) bool {
 	keyboard := b.createKeyboard(
 		[]string{"Add movie monitored + search now", "Add movie monitored", "Add movie unmonitored", "Add collection monitored + search now", "Add collection monitored", "Cancel, clear command", "\U0001F519"},
-		[]string{AddMovieMonSea, AddMovieMon, AddMovieUnMon, AddMovieColSea, AddMovieColMon, AddMovieCancel, AddMovieGoBack},
+		[]string{AddMovieMonSea, AddMovieMon, AddMovieUnMon, AddMovieColSea, AddMovieColMon, AddMovieCancel, AddMovieAddOptionsGoBack},
 	)
 	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
 		command.chatID,
