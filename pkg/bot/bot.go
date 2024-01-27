@@ -24,19 +24,18 @@ const (
 )
 
 type userAddMovie struct {
-	searchResults  map[string]*radarr.Movie
-	movie          *radarr.Movie
-	confirmation   bool
-	allProfiles    []*radarr.QualityProfile
-	profileID      int64
-	allRootFolders []*radarr.RootFolder
-	rootFolder     string
-	allTags        []*starr.Tag
-	selectedTags   []int
-	tagDone        bool
-	movieAdded     bool
-	chatID         int64
-	messageID      int
+	searchResults   map[string]*radarr.Movie
+	movie           *radarr.Movie
+	allProfiles     []*radarr.QualityProfile
+	profileID       int64
+	allRootFolders  []*radarr.RootFolder
+	rootFolder      string
+	allTags         []*starr.Tag
+	selectedTags    []int
+	monitored       bool
+	addMovieOptions *radarr.AddMovieOptions
+	chatID          int64
+	messageID       int
 }
 
 type userDeleteMovie struct {
