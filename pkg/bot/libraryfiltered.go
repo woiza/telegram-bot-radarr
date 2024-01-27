@@ -256,7 +256,7 @@ func (b *Bot) handleLibraryMovieMonitorSearchNow(update tgbotapi.Update, command
 func (b *Bot) handleLibraryMovieDelete(update tgbotapi.Update, command *userLibrary) bool {
 	messageText := fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(command.movie.Title), command.movie.ImdbID, command.movie.Year)
 	keyboard := b.createKeyboard(
-		[]string{"Yes, delete this movie", "No, show movie details"},
+		[]string{"Yes, delete this movie", "\U0001F519"},
 		[]string{LibraryMovieDeleteYes, LibraryMovieDeleteNo},
 	)
 	// Send the message containing movie details along with the keyboard
