@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	AddMovieYes    = "ADDMOVIE_YES"
-	AddMovieGoBack = "ADDMOVIE_GOBACK"
-	AddMovieCancel = "ADDMOVIE_CANCEL"
+	AddMovieYes      = "ADDMOVIE_YES"
+	AddMovieGoBack   = "ADDMOVIE_GOBACK"
+	AddMovieCancel   = "ADDMOVIE_CANCEL"
+	AddMovieTagsDone = "ADDMOVIE_TAGS_DONE"
 )
 
 func (b *Bot) processAddCommand(update tgbotapi.Update, userID int64, r *radarr.Radarr) {
@@ -79,8 +80,22 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 		b.clearState(update)
 		b.sendMessageWithEdit(command, CommandsCleared)
 		return false
+	case AddMovieTagsDone:
+		b.addMovie(update, *command)
 	default:
+		// Check if it starts with "PROFILE_"
+		if strings.HasPrefix(update.CallbackQuery.Data, "PROFILE_") {
+			return b.handleAddMovieProfile(update, *command)
+		}
+		// Check if it starts with "PROFILE_"
+		if strings.HasPrefix(update.CallbackQuery.Data, "ROOTFOLDER_") {
+			return b.handleAddMovieRootFolder(update, *command)
+		}
 		// Check if it starts with "TAG_"
+		if strings.HasPrefix(update.CallbackQuery.Data, "TAG_") {
+			return b.handleAddMovieEditSelectTag(update, command)
+		}
+		// Check if it starts with "TMDBID_"
 		if strings.HasPrefix(update.CallbackQuery.Data, "TMDBID_") {
 			return b.addMovieDetails(update, *command)
 		}
@@ -115,6 +130,11 @@ func (b *Bot) showAddMovieSearchResults(update tgbotapi.Update, command userAddM
 	}
 
 	keyboard := b.createKeyboard(buttonLabels, buttonData)
+	keyboardCancel := b.createKeyboard(
+		[]string{"Cancel - clear command"},
+		[]string{AddMovieCancel},
+	)
+	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardCancel.InlineKeyboard...)
 
 	switch len(command.searchResults) {
 	case 1:
@@ -164,80 +184,231 @@ func (b *Bot) addMovieDetails(update tgbotapi.Update, command userAddMovie) bool
 }
 
 func (b *Bot) handleAddMovieYes(update tgbotapi.Update, command userAddMovie) bool {
-	var messageText strings.Builder
 	//movie already in library...
 	if command.movie.ID != 0 {
-		b.clearState(update)
-		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Movie already exists in your library.\nAll commands have been cleared.")
+		b.sendMessageWithEdit(&command, "Movie already in library\nAll commands have been cleared")
+		return false
+	}
+
+	profiles, err := b.RadarrServer.GetQualityProfiles()
+	if err != nil {
+		msg := tgbotapi.NewMessage(command.chatID, err.Error())
+		fmt.Println(err)
 		b.sendMessage(msg)
 		return false
-	} else {
-		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "")
-		profiles, err := b.RadarrServer.GetQualityProfiles()
-		if err != nil {
-			msg.Text = err.Error()
-			fmt.Println(err)
-			b.sendMessage(msg)
-		}
-		if len(profiles) > 1 {
-			buttons := make([][]tgbotapi.InlineKeyboardButton, len(profiles))
-			for i, profile := range profiles {
-				button := tgbotapi.NewInlineKeyboardButtonData(profile.Name, strconv.Itoa(int(profile.ID)))
-				buttons[i] = tgbotapi.NewInlineKeyboardRow(button)
+	}
+	if len(profiles) == 0 {
+		b.sendMessageWithEdit(&command, "No quality profile(s) found on your radarr server.\nAll commands have been cleared.")
+		b.clearState(update)
+	}
+	if len(profiles) == 1 {
+		command.profileID = profiles[0].ID
+	}
+	command.allProfiles = profiles
+
+	rootFolders, err := b.RadarrServer.GetRootFolders()
+	if err != nil {
+		msg := tgbotapi.NewMessage(command.chatID, err.Error())
+		fmt.Println(err)
+		b.sendMessage(msg)
+		return false
+	}
+	if len(rootFolders) == 1 {
+		command.rootFolder = rootFolders[0].Path
+	}
+	if len(rootFolders) == 0 {
+		b.sendMessageWithEdit(&command, "No root folder(s) found on your radarr server.\nAll commands have been cleared.")
+		b.clearState(update)
+	}
+	command.allRootFolders = rootFolders
+
+	tags, err := b.RadarrServer.GetTags()
+	if err != nil {
+		msg := tgbotapi.NewMessage(command.chatID, err.Error())
+		fmt.Println(err)
+		b.sendMessage(msg)
+		return false
+	}
+	command.allTags = tags
+
+	b.setAddMovieState(command.chatID, &command)
+
+	return b.showAddMovieProfiles(update, command)
+}
+
+func (b *Bot) showAddMovieProfiles(update tgbotapi.Update, command userAddMovie) bool {
+	if len(command.allProfiles) > 1 {
+		var profileKeyboard [][]tgbotapi.InlineKeyboardButton
+		for _, profile := range command.allProfiles {
+			row := []tgbotapi.InlineKeyboardButton{
+				tgbotapi.NewInlineKeyboardButtonData(profile.Name, "PROFILE_"+strconv.Itoa(int(profile.ID))),
 			}
-			msg.Text = "Please choose your quality profile"
-			msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(buttons...)
-			//		b.AddMovieStates[userID] = command
-			b.sendMessage(msg)
-			return false
-		} else if len(profiles) == 1 {
-			profileID := profiles[0].ID
-			update.CallbackQuery.Data = strconv.FormatInt(profileID, 10)
+			profileKeyboard = append(profileKeyboard, row)
+		}
+
+		var messageText strings.Builder
+		var keyboard tgbotapi.InlineKeyboardMarkup
+		keyboardCancelGoBack := b.createKeyboard(
+			[]string{"Cancel - clear command", "\U0001F519"},
+			[]string{AddMovieCancel, AddMovieGoBack},
+		)
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, profileKeyboard...)
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardCancelGoBack.InlineKeyboard...)
+		messageText.WriteString("Select quality profile:")
+		b.sendMessageWithEditAndKeyboard(
+			&command,
+			keyboard,
+			messageText.String(),
+		)
+		return false
+	} else {
+		return b.showAddMovieRootFolders(update, command)
+	}
+}
+
+func (b *Bot) handleAddMovieProfile(update tgbotapi.Update, command userAddMovie) bool {
+	profileIDStr := strings.TrimPrefix(update.CallbackQuery.Data, "PROFILE_")
+	// Parse the profile ID
+	profileID, err := strconv.Atoi(profileIDStr)
+	if err != nil {
+		msg := tgbotapi.NewMessage(command.chatID, err.Error())
+		fmt.Println(err)
+		b.sendMessage(msg)
+		return false
+	}
+
+	command.profileID = int64(profileID)
+	b.setAddMovieState(command.chatID, &command)
+	return b.showAddMovieRootFolders(update, command)
+}
+
+func (b *Bot) showAddMovieRootFolders(update tgbotapi.Update, command userAddMovie) bool {
+	if len(command.allRootFolders) > 1 {
+		var rootFolderKeyboard [][]tgbotapi.InlineKeyboardButton
+		for _, rootFolder := range command.allRootFolders {
+			row := []tgbotapi.InlineKeyboardButton{
+				tgbotapi.NewInlineKeyboardButtonData(rootFolder.Path, "ROOTFOLDER_"+strconv.Itoa(int(rootFolder.ID))),
+			}
+			rootFolderKeyboard = append(rootFolderKeyboard, row)
+		}
+
+		var messageText strings.Builder
+		var keyboard tgbotapi.InlineKeyboardMarkup
+		keyboardCancelGoBack := b.createKeyboard(
+			[]string{"Cancel - clear command", "\U0001F519"},
+			[]string{AddMovieCancel, AddMovieGoBack},
+		)
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, rootFolderKeyboard...)
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardCancelGoBack.InlineKeyboard...)
+		messageText.WriteString("Select root folder:")
+		b.sendMessageWithEditAndKeyboard(
+			&command,
+			keyboard,
+			messageText.String(),
+		)
+		return false
+	} else {
+		return b.showAddMovieTags(update, &command)
+	}
+}
+
+func (b *Bot) handleAddMovieRootFolder(update tgbotapi.Update, command userAddMovie) bool {
+	command.rootFolder = strings.TrimPrefix(update.CallbackQuery.Data, "ROOTFOLDER_")
+	b.setAddMovieState(command.chatID, &command)
+	return b.showAddMovieTags(update, &command)
+}
+
+func (b *Bot) showAddMovieTags(update tgbotapi.Update, command *userAddMovie) bool {
+	var tagsKeyboard [][]tgbotapi.InlineKeyboardButton
+	for _, tag := range command.allTags {
+		// Check if the tag is selected
+		isSelected := isSelectedTag(command.selectedTags, tag.ID)
+
+		var buttonText string
+		if isSelected {
+			buttonText = tag.Label + " \u2705"
 		} else {
-			//	b.AddMovieStates[userID] = command
-			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, utils.Escape("No quality profile(s) found on your radarr server.\nAll commands have been cleared."))
-			b.clearState(update)
-			b.sendMessage(msg)
-			return false
+			buttonText = tag.Label
 		}
+
+		row := []tgbotapi.InlineKeyboardButton{
+			tgbotapi.NewInlineKeyboardButtonData(buttonText, "TAG_"+strconv.Itoa(int(tag.ID))),
+		}
+		tagsKeyboard = append(tagsKeyboard, row)
 	}
+	var keyboard tgbotapi.InlineKeyboardMarkup
+	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, tagsKeyboard...)
+
+	var keyboardSubmitCancelGoBack tgbotapi.InlineKeyboardMarkup
+	keyboardSubmitCancelGoBack = b.createKeyboard(
+		[]string{"Done - Continue", "Cancel - clear command", "\U0001F519"},
+		[]string{AddMovieTagsDone, AddMovieCancel, AddMovieGoBack},
+	)
+
+	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, keyboardSubmitCancelGoBack.InlineKeyboard...)
+
+	// Send the message containing movie details along with the keyboard
+	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
+		command.chatID,
+		command.messageID,
+		"Select tags:",
+		keyboard,
+	)
+	editMsg.ParseMode = "MarkdownV2"
+	editMsg.DisableWebPagePreview = true
+	b.setAddMovieState(command.chatID, command)
+	b.sendMessage(editMsg)
 	return false
+
 }
 
-// Helper functions to manage tag selections.
-func findTagIndex(tags []*starr.Tag, tagID int) int {
-	for i, tag := range tags {
-		if tag.ID == tagID {
-			return i
-		}
+func (b *Bot) handleAddMovieEditSelectTag(update tgbotapi.Update, command *userAddMovie) bool {
+	tagIDStr := strings.TrimPrefix(update.CallbackQuery.Data, "TAG_")
+	// Parse the tag ID
+	tagID, err := strconv.Atoi(tagIDStr)
+	if err != nil {
+		fmt.Printf("Cannot convert tag string to int: %v", err)
+		return false
 	}
-	return -1
-}
 
-func findTagByID(tags []*starr.Tag, tagID int) *starr.Tag {
-	for _, tag := range tags {
-		if int(tag.ID) == tagID {
-			return tag
-		}
+	// Check if the tag is already selected
+	if isSelectedTag(command.selectedTags, tagID) {
+		// If selected, remove the tag from selectedTags (deselect)
+		command.selectedTags = removeTag(command.selectedTags, tagID)
+	} else {
+		// If not selected, add the tag to selectedTags (select)
+		tag := &starr.Tag{ID: tagID} // Create a new starr.Tag with the ID
+		command.selectedTags = append(command.selectedTags, tag.ID)
 	}
-	return nil
+
+	b.setAddMovieState(command.chatID, command)
+	return b.showAddMovieTags(update, command)
 }
 
-func removeTagByID(tags []*starr.Tag, index int) []*starr.Tag {
-	copy(tags[index:], tags[index+1:])
-	return tags[:len(tags)-1]
-}
+// func (b *Bot) showAddMovieAddOptions(update tgbotapi.Update, command userAddMovie) bool {
+// 	addKeyboard := b.createKeyboard(
+// 		[]string{"Add movie monitored + search now", "Add movie monitored", "Add movie unmonitored", "Add collection monitored + search now", "Add collection monitored", "Cancel, clear command"},
+// 	)
+// 	// msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "How would you like to add the movie?\n")
+// 	// buttons := make([][]tgbotapi.InlineKeyboardButton, 6)
+// 	// buttons[0] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add movie monitored + search now", "MOVIE_MONSEA"))
+// 	// buttons[1] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add movie monitored", "MOVIE_MON"))
+// 	// buttons[2] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add movie unmonitored", "MOVIE_UNMON"))
+// 	// buttons[3] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add collection monitored + search now", "COLLECTION_MONSEA"))
+// 	// buttons[4] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Add collection monitored", "COLLECTION_MON"))
+// 	// buttons[5] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Cancel, clear command", "MONITORED_CANCEL"))
+// }
 
 func addMovie(command userAddMovie, addMovieInput radarr.AddMovieInput, addOptions radarr.AddMovieOptions, update tgbotapi.Update, b *Bot) bool {
 	var tagIDs []int
 	for _, tag := range command.selectedTags {
-		tagIDs = append(tagIDs, tag.ID)
+		tagIDs = append(tagIDs, tag)
 	}
 
 	addMovieInput.TmdbID = command.movie.TmdbID
 	addMovieInput.Title = command.movie.Title
-	addMovieInput.QualityProfileID = *command.profileID
-	addMovieInput.RootFolderPath = *command.path
+	addMovieInput.QualityProfileID = command.profileID
+	addMovieInput.RootFolderPath = command.rootFolder
 	addMovieInput.AddOptions = &addOptions
 	addMovieInput.Tags = tagIDs
 

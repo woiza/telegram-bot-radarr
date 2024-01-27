@@ -192,22 +192,3 @@ func getQualityProfileIndexByID(qualityProfiles []*radarr.QualityProfile, id int
 	}
 	return -1 // Return an appropriate default or handle the error as needed
 }
-
-func isSelectedTag(selectedTags []int, tagID int) bool {
-	for _, selectedTag := range selectedTags {
-		if selectedTag == tagID {
-			return true
-		}
-	}
-	return false
-}
-
-func removeTag(tags []int, tagID int) []int {
-	var updatedTags []int
-	for _, tag := range tags {
-		if tag != tagID {
-			updatedTags = append(updatedTags, tag)
-		}
-	}
-	return updatedTags
-}

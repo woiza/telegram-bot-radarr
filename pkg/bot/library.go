@@ -8,6 +8,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/woiza/telegram-bot-radarr/pkg/utils"
+	"golift.io/starr"
 	"golift.io/starr/radarr"
 )
 
@@ -147,4 +148,47 @@ func (b *Bot) createKeyboard(buttonText, buttonData []string) tgbotapi.InlineKey
 		buttons[i] = tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(buttonText[i], buttonData[i]))
 	}
 	return tgbotapi.NewInlineKeyboardMarkup(buttons...)
+}
+
+// Helper functions to manage tag selections.
+func findTagIndex(tags []*starr.Tag, tagID int) int {
+	for i, tag := range tags {
+		if tag.ID == tagID {
+			return i
+		}
+	}
+	return -1
+}
+
+func findTagByID(tags []*starr.Tag, tagID int) *starr.Tag {
+	for _, tag := range tags {
+		if int(tag.ID) == tagID {
+			return tag
+		}
+	}
+	return nil
+}
+
+func removeTagByID(tags []*starr.Tag, index int) []*starr.Tag {
+	copy(tags[index:], tags[index+1:])
+	return tags[:len(tags)-1]
+}
+
+func isSelectedTag(selectedTags []int, tagID int) bool {
+	for _, selectedTag := range selectedTags {
+		if selectedTag == tagID {
+			return true
+		}
+	}
+	return false
+}
+
+func removeTag(tags []int, tagID int) []int {
+	var updatedTags []int
+	for _, tag := range tags {
+		if tag != tagID {
+			updatedTags = append(updatedTags, tag)
+		}
+	}
+	return updatedTags
 }
