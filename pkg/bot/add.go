@@ -352,11 +352,9 @@ func (b *Bot) showAddMovieTags(update tgbotapi.Update, command *userAddMovie) bo
 		// Check if the tag is selected
 		isSelected := isSelectedTag(command.selectedTags, tag.ID)
 
-		var buttonText string
+		buttonText := tag.Label
 		if isSelected {
-			buttonText = tag.Label + " \u2705"
-		} else {
-			buttonText = tag.Label
+			buttonText += " \u2705"
 		}
 
 		row := []tgbotapi.InlineKeyboardButton{
