@@ -81,34 +81,61 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 	switch update.CallbackQuery.Data {
 	case AddMovieYes:
 		b.setActiveCommand(userID, AddMovieCommand)
-		b.handleAddMovieYes(update, command)
+		return b.handleAddMovieYes(update, command)
 	case AddMovieGoBack:
 		b.setAddMovieState(command.chatID, command)
-		b.showAddMovieSearchResults(update, command)
+		return b.showAddMovieSearchResults(update, command)
 	case AddMovieProfileGoBack:
-		b.showAddMovieSearchResults(update, command)
+		return b.showAddMovieSearchResults(update, command)
 	case AddMovieRootFolderGoBack:
-		b.showAddMovieProfiles(update, command)
+		if len(command.allProfiles) == 1 {
+			return b.showAddMovieSearchResults(update, command)
+		}
+		return b.showAddMovieProfiles(update, command)
 	case AddMovieTagsGoBack:
-		b.showAddMovieRootFolders(update, command)
+		if len(command.allRootFolders) == 1 && len(command.allProfiles) == 1 {
+			return b.showAddMovieSearchResults(update, command)
+		}
+		if len(command.allRootFolders) == 1 {
+			return b.showAddMovieProfiles(update, command)
+		}
+		return b.showAddMovieRootFolders(update, command)
 	case AddMovieAddOptionsGoBack:
-		b.showAddMovieTags(update, command)
+		// Check if there are no tags
+		if len(command.allTags) == 0 {
+			// Check if there is only one root folder and one profile
+			if len(command.allRootFolders) == 1 && len(command.allProfiles) == 1 {
+				return b.showAddMovieSearchResults(update, command)
+			}
+			// Check if there is only one root folder
+			if len(command.allRootFolders) == 1 && len(command.allProfiles) > 1 {
+				return b.showAddMovieProfiles(update, command)
+			}
+			// Check if there is only one profile
+			if len(command.allProfiles) == 1 && len(command.allRootFolders) > 1 {
+				return b.showAddMovieRootFolders(update, command)
+			}
+			// If there are multiple root folders and profiles, go to root folders
+			return b.showAddMovieRootFolders(update, command)
+		}
+		// If there are tags, go to the tags step
+		return b.showAddMovieTags(update, command)
 	case AddMovieCancel:
 		b.clearState(update)
 		b.sendMessageWithEdit(command, CommandsCleared)
 		return false
 	case AddMovieTagsDone:
-		b.showAddMovieAddOptions(update, command)
+		return b.showAddMovieAddOptions(update, command)
 	case AddMovieMonSea:
-		b.handleAddMovieMonSea(update, command)
+		return b.handleAddMovieMonSea(update, command)
 	case AddMovieMon:
-		b.handleAddMovieMon(update, command)
+		return b.handleAddMovieMon(update, command)
 	case AddMovieUnMon:
-		b.handleAddMovieUnMon(update, command)
+		return b.handleAddMovieUnMon(update, command)
 	case AddMovieColSea:
-		b.handleAddMovieColSea(update, command)
+		return b.handleAddMovieColSea(update, command)
 	case AddMovieColMon:
-		b.handleAddMovieColMon(update, command)
+		return b.handleAddMovieColMon(update, command)
 	default:
 		// Check if it starts with "PROFILE_"
 		if strings.HasPrefix(update.CallbackQuery.Data, "PROFILE_") {
@@ -128,7 +155,6 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 		}
 		return b.showAddMovieSearchResults(update, command)
 	}
-	return false
 }
 
 func (b *Bot) showAddMovieSearchResults(update tgbotapi.Update, command *userAddMovie) bool {
@@ -480,20 +506,21 @@ func (b *Bot) handleAddMovieColMon(update tgbotapi.Update, command *userAddMovie
 }
 
 func (b *Bot) addMovieToLibrary(update tgbotapi.Update, command *userAddMovie) bool {
-	var addMovieInput radarr.AddMovieInput
 	var tagIDs []int
 	for _, tag := range command.selectedTags {
 		tagIDs = append(tagIDs, tag)
 	}
 	// does anyone ever user anything other than announced?
-	addMovieInput.MinimumAvailability = "announced"
-	addMovieInput.TmdbID = command.movie.TmdbID
-	addMovieInput.Title = command.movie.Title
-	addMovieInput.QualityProfileID = command.profileID
-	addMovieInput.RootFolderPath = command.rootFolder
-	addMovieInput.AddOptions = command.addMovieOptions
-	addMovieInput.Tags = tagIDs
-	addMovieInput.Monitored = command.monitored
+	addMovieInput := radarr.AddMovieInput{
+		MinimumAvailability: "announced",
+		TmdbID:              command.movie.TmdbID,
+		Title:               command.movie.Title,
+		QualityProfileID:    command.profileID,
+		RootFolderPath:      command.rootFolder,
+		AddOptions:          command.addMovieOptions,
+		Tags:                tagIDs,
+		Monitored:           command.monitored,
+	}
 
 	var messageText string
 	var _, err = b.RadarrServer.AddMovie(&addMovieInput)
