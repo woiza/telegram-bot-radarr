@@ -33,7 +33,7 @@ func (b *Bot) processAddCommand(update tgbotapi.Update, userID int64, r *radarr.
 	message, _ := b.sendMessage(msg)
 	command := userAddMovie{
 		chatID:    message.Chat.ID,
-		messageID: message.MessageID.
+		messageID: message.MessageID,
 	}
 
 	criteria := update.Message.CommandArguments()
