@@ -31,9 +31,10 @@ const (
 func (b *Bot) processAddCommand(update tgbotapi.Update, userID int64, r *radarr.Radarr) {
 	msg := tgbotapi.NewMessage(userID, "Handling add movie command... please wait")
 	message, _ := b.sendMessage(msg)
-	command := userAddMovie{}
-	command.chatID = message.Chat.ID
-	command.messageID = message.MessageID
+	command := userAddMovie{
+		chatID:    message.Chat.ID,
+		messageID: message.MessageID.
+	}
 
 	criteria := update.Message.CommandArguments()
 	if len(criteria) < 1 {
