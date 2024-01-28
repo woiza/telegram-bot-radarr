@@ -2,7 +2,6 @@ package bot
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -24,39 +23,8 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 	switch update.Message.Command() {
 
 	case "q", "query", "add", "Q", "Query", "Add":
-		criteria := update.Message.CommandArguments()
-		if len(criteria) < 1 {
-			msg.Text = "Please provide a search criteria /q [query]"
-			b.sendMessage(msg)
-			break
-		}
-		searchResults, err := r.Lookup(criteria)
-		if err != nil {
-			msg.Text = err.Error()
-			fmt.Println(err)
-			b.sendMessage(msg)
-			break
-		}
-		if len(searchResults) == 0 {
-			msg.Text = "No movies found"
-			b.sendMessage(msg)
-			break
-		}
-		if len(searchResults) > 25 {
-			msg.Text = "Result size too large, please narrow down your search criteria"
-			b.sendMessage(msg)
-			break
-		}
-		command := userAddMovie{
-			searchResults: make(map[string]*radarr.Movie, len(searchResults)),
-		}
-		for _, movie := range searchResults {
-			tmdbID := strconv.Itoa(int(movie.TmdbID))
-			command.searchResults[tmdbID] = movie
-		}
-		b.AddMovieStates[userID] = &command
 		b.setActiveCommand(userID, AddMovieCommand)
-		b.sendSearchResults(command.searchResults, &msg)
+		b.processAddCommand(update, userID, r)
 
 	case "movies", "library", "l":
 		b.setActiveCommand(userID, LibraryMenuCommand)

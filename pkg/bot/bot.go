@@ -24,15 +24,18 @@ const (
 )
 
 type userAddMovie struct {
-	searchResults map[string]*radarr.Movie
-	movie         *radarr.Movie
-	confirmation  bool
-	profileID     *int64
-	path          *string
-	allTags       []*starr.Tag
-	selectedTags  []*starr.Tag
-	tagDone       bool
-	movieAdded    bool
+	searchResults   map[string]*radarr.Movie
+	movie           *radarr.Movie
+	allProfiles     []*radarr.QualityProfile
+	profileID       int64
+	allRootFolders  []*radarr.RootFolder
+	rootFolder      string
+	allTags         []*starr.Tag
+	selectedTags    []int
+	monitored       bool
+	addMovieOptions *radarr.AddMovieOptions
+	chatID          int64
+	messageID       int
 }
 
 type userDeleteMovie struct {
@@ -98,14 +101,14 @@ func (c *userDeleteMovie) GetMessageID() int {
 	return c.messageID
 }
 
-// Implement the interface for userDelete
-// func (c *userAddMovie) GetChatID() int64 {
-// 	return c.chatID
-// }
+// Implement the interface for userAddMovie
+func (c *userAddMovie) GetChatID() int64 {
+	return c.chatID
+}
 
-// func (c *userAddMovie) GetMessageID() int {
-// 	return c.messageID
-// }
+func (c *userAddMovie) GetMessageID() int {
+	return c.messageID
+}
 
 func New(config *config.Config, botAPI *tgbotapi.BotAPI, radarrServer *radarr.Radarr) *Bot {
 	return &Bot{
