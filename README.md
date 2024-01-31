@@ -1,48 +1,51 @@
 # Go-Powered Telegram Bot for Radarr Movie Management
-This Telegram bot is specifically designed for movie management through Radarr, a movie collection manager. It enables users to execute a range of commands for searching, adding, deleting, and organizing movies within their Radarr library. Developed in Go, the bot operates with minimal resource consumption, utilizing less than 10 MB of RAM. It maintains a stateless operation and does not persist data to disk, except for error logs. The Docker image size is efficiently kept under 10 MB (compressed), supporting multiple CPU architectures including `arm32v7`, `arm64v8`, and `x86_64`/`amd64`.
+This Telegram bot is specifically designed for movie management through Radarr, a movie collection manager. It enables users to execute a range of commands for searching, adding, editing, deleting, and organizing movies within their Radarr library. Developed in Go, the bot operates with minimal resource consumption, utilizing less than 10 MB of RAM. It maintains a stateless operation and does not persist data to disk, except for error logs. The Docker image size is efficiently kept under 10 MB (compressed), supporting multiple CPU architectures including `arm32v7`, `arm64v8`, and `x86_64`/`amd64`.
 
-This bot draws inspiration from [itsmegb/telegram-radarr-bot](https://github.com/itsmegb/telegram-radarr-bot/) and is built using [golift/starr](https://github.com/golift/starr/) and [go-telegram-bot-api/telegram-bot-api](https://github.com/go-telegram-bot-api/telegram-bot-api/) without any additional dependencies.
+This bot is built using [golift/starr](https://github.com/golift/starr/) and [go-telegram-bot-api/telegram-bot-api](https://github.com/go-telegram-bot-api/telegram-bot-api/) without any additional dependencies.
 
 ## Features and Commands
 
-![menu](screenshots/menu.jpg?raw=true "menu")
+![menu](screenshots/menu.png?raw=true "menu")
 
 ### Start Bot
-![start](screenshots/start.png?raw=true "search movie")
+![start](screenshots/start.png?raw=true "start")
 
 ### Search and Add Movies
-``/q [movie]``: Search for a movie.\
-Once a movie is found, the bot offers options to add the movie to your Radarr library along with various monitoring settings. If you have only one root folder and one quality profile, the bot will automatically select the first option for you. However, if multiple choices exist, you will be prompted to select a root folder and a quality profile.
+``/q [movie]`` or just type the movie's title: Search for a movie.\
+Once a movie is found, the bot offers options to add the movie to your Radarr library along with various monitoring settings. If you have only one root folder and one quality profile, the bot will automatically select the first option for you. However, if multiple choices exist, you will be prompted to select a root folder and a quality profile. If you have tags defined in Radarr, you can select them as well.
 
-![q1](screenshots/q1.png?raw=true "search movie")
+![q1](screenshots/add_links.png?raw=true "add movie")
+![q2](screenshots/add_inline.png?raw=true "add movie")
+![q3](screenshots/add_confirmation.png?raw=true "add movie")
+![q4](screenshots/add_monsea.png?raw=true "add movie")
 
-![q2](screenshots/q2.png?raw=true "search movie")
+### Movie Management
+``/library [movie]`` or ``/l [movie]``: Manage movies in your library. Allows editing a movie's quality profile (if more than one is configured in Radarr) and tags. Furthermore, you can monitor/unmonitor a movie, search for it, and delete it. Movie/title is optional. If omitted, a filter menu is shown.
 
-![q3](screenshots/q3.png?raw=true "search movie")
-`
-`
+![l1](screenshots/library.png?raw=true "library")
+![l2](screenshots/library_movie.png?raw=true "library_movie")
+
+
+### Movie Deletion
+``/delete [movie]`` or ``/d [movie]``: Initiate the process of deleting movies from your Radarr library. Be cautious as this action deletes associated files. Movie/title is optional. If omitted, all movies are shown as inline keyboards and multiple movies can be selected.
+
+![delete](screenshots/delete_confirmation.png?raw=true "delete")
+
 ### Cancel or Abort Commands
 ``/clear`` or ``/cancel`` or ``/stop``: 
 This command clears all previously issued commands and resets the bot's state. It can be issued at any time.
 
-### Movie Deletion
-``/delete`` or ``/remove``: Initiate the process of deleting a movie from your Radarr library. Be cautious as this action deletes associated files.
-
-![delete](screenshots/delete.png?raw=true "search movie")
-
-### Movie Management
+### Library Management
+- ``/up`` or ``/upcoming``: List upcoming movies in the next 30 days
 - ``/rss``: Initiate an RSS sync
-- ``/wanted``: Search for all monitored movies
-- ``/upcoming``: List upcoming movies in the next 30 days
-- ``/dl`` or ``/downloaded``: List downloaded movies
-- ``/library`` or ``/movies``: List all movies in the Radarr library
+- ``/searchmonitored``: Search all monitored movies
 - ``/updateall``: Update metadata and rescan files/folders for all movies
 
-![management](screenshots/management.png?raw=true "movie management")
 
 ### System Information
-- ``/free`` or ``/diskspace``: Display free space of disks connected to your Radarr server.
-- ``/id`` or ``/getid``: Show your Telegram user ID.
+- ``/free`` or ``/diskspace``: Display free space of disks connected to your Radarr server
+- ``/system`` : Display your Radarr configuration
+- ``/id`` or ``/getid``: Show your Telegram user ID
 
 
 ## Installation and Configuration
@@ -75,7 +78,7 @@ services:
         environment:
             - RBOT_TELEGRAM_BOT_TOKEN=1460...:AAHlBW_mabVg...
             - RBOT_BOT_ALLOWED_USERIDS=12345,98765,45678 # Telegram user ID(s)
-            - RBOT_BOT_MAX_ITEMS=50 # 50 lines per message
+            - RBOT_BOT_MAX_ITEMS=50 # not used yet
             - RBOT_RADARR_PROTOCOL=http # http or https
             - RBOT_RADARR_PORT=7878
             - RBOT_RADARR_HOSTNAME=192.168.2.2 # IP or hostname
@@ -85,15 +88,15 @@ services:
 
 ```
 q - searches a movie 
+library - lists all movies - WARNING: can be large
+delete - deletes a movie - WARNING: can be large
 clear - deletes all previously sent commands
 free - lists the free space of your disks
-delete - deletes a movie - WARNING: can be large
+up - lists upcoming movies in the next 30 days
 rss - performs a RSS sync
-wanted - searches all monitored movies
-upcoming - lists upcoming movies in the next 30 days
-dl - lists downloaded movies - WARNING: can be large
-library - lists all movies - WARNING: can be large
-updateall - updates metadata and rescan files and folders
+searchmonitored - searches all monitored movies
+updateall - updates metadata and rescan files/folders
+system - shows your Radarr configuration
 id - shows your Telegram user ID
 ```
 
