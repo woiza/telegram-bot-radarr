@@ -5,31 +5,31 @@ This bot is built using [golift/starr](https://github.com/golift/starr/) and [go
 
 ## Features and Commands
 
-![menu](screenshots/menu.png?raw=true "menu")
+<img src="screenshots/menu.png?raw=true" alt="q1" title="menu" width="300" />
 
 ### Start Bot
-![start](screenshots/start.png?raw=true "start")
+<img src="screenshots/start.png?raw=true" alt="q1" title="start" width="300" />
 
 ### Search and Add Movies
 ``/q [movie]`` or just type the movie's title: Search for a movie.\
 Once a movie is found, the bot offers options to add the movie to your Radarr library along with various monitoring settings. If you have only one root folder and one quality profile, the bot will automatically select the first option for you. However, if multiple choices exist, you will be prompted to select a root folder and a quality profile. If you have tags defined in Radarr, you can select them as well.
 
-![q1](screenshots/add_links.png?raw=true "add movie")
-![q2](screenshots/add_inline.png?raw=true "add movie")
-![q3](screenshots/add_confirmation.png?raw=true "add movie")
-![q4](screenshots/add_monsea.png?raw=true "add movie")
+<img src="screenshots/add_links.png?raw=true" alt="q1" title="add movie" width="300" />
+<img src="screenshots/add_inline.png?raw=true" alt="q2" title="add movie" width="300" />
+<img src="screenshots/add_confirmation.png?raw=true" alt="q3" title="add movie" width="300" />
+<img src="screenshots/add_monsea.png?raw=true" alt="q4" title="add movie" width="300" />
 
 ### Movie Management
 ``/library [movie]`` or ``/l [movie]``: Manage movies in your library. Allows editing a movie's quality profile (if more than one is configured in Radarr) and tags. Furthermore, you can monitor/unmonitor a movie, search for it, and delete it. Movie/title is optional. If omitted, a filter menu is shown.
 
-![l1](screenshots/library.png?raw=true "library")
-![l2](screenshots/library_movie.png?raw=true "library_movie")
+<img src="screenshots/library.png?raw=true" alt="q1" title="library" width="300" />
+<img src="screenshots/library_movie.png?raw=true" alt="q1" title="library movie" width="300" />
 
 
 ### Movie Deletion
 ``/delete [movie]`` or ``/d [movie]``: Initiate the process of deleting movies from your Radarr library. Be cautious as this action deletes associated files. Movie/title is optional. If omitted, all movies are shown as inline keyboards and multiple movies can be selected.
 
-![delete](screenshots/delete_confirmation.png?raw=true "delete")
+<img src="screenshots/delete_confirmation.png?raw=true" alt="q1" title="delete" width="300" />
 
 ### Cancel or Abort Commands
 ``/clear`` or ``/cancel`` or ``/stop``: 
