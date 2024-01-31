@@ -53,7 +53,7 @@ You can either build the bot yourself using the provided source code or utilize 
 - GitHub [ghcr.io/woiza/telegram-bot-radarr](https://github.com/woiza/telegram-bot-radarr/pkgs/container/telegram-bot-radarr)
 - Docker Hub [woiza/telegram-bot-radarr](https://hub.docker.com/repository/docker/woiza/telegram-bot-radarr/)
 
-The bot requires configuration through seven mandatory environment variables. For specific details, please refer to the Docker Compose example provided below. However, before running this bot, ensure you have obtained a Telegram bot token and your Radarr API key. Additionally, determine who should have access to this bot (Telegram user ID). You can find detailed instructions on obtaining these credentials in the official documentation:
+The bot requires configuration through seven mandatory environment variables. For specific details, please refer to the Docker Compose example provided below. Before running this bot, ensure you have obtained a Telegram bot token and your Radarr API key. Additionally, determine who should have access to this bot (Telegram user ID). Several users are supported by providing a list of Telegram user IDs. You can find detailed instructions on obtaining these credentials in the official documentation:
 - [Telegram Bot Token](https://core.telegram.org/bots/tutorial/)
 - [Radarr API Key](https://wiki.servarr.com/en/radarr/settings#security/)
 
