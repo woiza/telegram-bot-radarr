@@ -8,6 +8,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/woiza/telegram-bot-radarr/pkg/utils"
+	"golift.io/starr"
 	"golift.io/starr/radarr"
 )
 
@@ -248,7 +249,8 @@ func (b *Bot) handleDeleteMovieYes(update tgbotapi.Update, command *userDeleteMo
 		deletedMovies = append(deletedMovies, movie.Title)
 	}
 	bulkEdit := radarr.BulkEdit{
-		MovieIDs: movieIDs,
+		MovieIDs:    movieIDs,
+		DeleteFiles: starr.True(),
 	}
 
 	err := b.RadarrServer.DeleteMovies(&bulkEdit)
