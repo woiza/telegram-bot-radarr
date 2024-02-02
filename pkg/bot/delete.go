@@ -249,8 +249,9 @@ func (b *Bot) handleDeleteMovieYes(update tgbotapi.Update, command *userDeleteMo
 		deletedMovies = append(deletedMovies, movie.Title)
 	}
 	bulkEdit := radarr.BulkEdit{
-		MovieIDs:    movieIDs,
-		DeleteFiles: starr.True(),
+		MovieIDs:           movieIDs,
+		DeleteFiles:        starr.True(),
+		AddImportExclusion: starr.False(),
 	}
 
 	err := b.RadarrServer.DeleteMovies(&bulkEdit)
