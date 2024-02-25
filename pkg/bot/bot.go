@@ -46,6 +46,7 @@ type userDeleteMovie struct {
 	confirmation           bool
 	chatID                 int64
 	messageID              int
+	page                   int
 }
 
 type userLibrary struct {

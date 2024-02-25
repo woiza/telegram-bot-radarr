@@ -13,11 +13,13 @@ import (
 )
 
 const (
-	DeleteMovieConfirm = "DELETEMOVIE_SUBMIT"
-	DeleteMovieCancel  = "DELETEMOVIE_CANCEL"
-	DeleteMovieGoBack  = "DELETEMOVIE_GOBACK"
-	DeleteMovieYes     = "DELETEMOVIE_YES"
-	DeleteMovieTMDBID  = "DELETEMOVIE_TMDBID_"
+	DeleteMovieConfirm      = "DELETEMOVIE_SUBMIT"
+	DeleteMovieCancel       = "DELETEMOVIE_CANCEL"
+	DeleteMovieGoBack       = "DELETEMOVIE_GOBACK"
+	DeleteMovieYes          = "DELETEMOVIE_YES"
+	DeleteMovieTMDBID       = "DELETEMOVIE_TMDBID_"
+	DeleteMoviePreviousPage = "DELETEMOVIE_PREV_PAGE"
+	DeleteMovieNextPage     = "DELETEMOVIE_NEXT_PAGE"
 )
 
 func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *radarr.Radarr) {
@@ -73,6 +75,14 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 	}
 
 	switch update.CallbackQuery.Data {
+	case DeleteMoviePreviousPage:
+		if command.page > 0 {
+			command.page--
+		}
+		return b.showDeleteMovieSelection(update, command)
+	case DeleteMovieNextPage:
+		command.page++
+		return b.showDeleteMovieSelection(update, command)
 	case DeleteMovieConfirm:
 		return b.processMovieSelectionForDelete(update, command)
 	case DeleteMovieYes:
@@ -110,8 +120,20 @@ func (b *Bot) showDeleteMovieSelection(update tgbotapi.Update, command *userDele
 		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
 	})
 
+	// Pagination parameters
+	page := command.page
+	pageSize := b.Config.MaxItems
+	totalPages := (len(movies) + pageSize - 1) / pageSize
+
+	// Calculate start and end index for the current page
+	startIndex := page * pageSize
+	endIndex := (page + 1) * pageSize
+	if endIndex > len(movies) {
+		endIndex = len(movies)
+	}
+
 	var movieKeyboard [][]tgbotapi.InlineKeyboardButton
-	for _, movie := range movies {
+	for _, movie := range movies[startIndex:endIndex] {
 		// Check if the movie is selected
 		isSelected := isSelectedMovie(command.selectedMovies, movie.ID)
 
@@ -128,6 +150,20 @@ func (b *Bot) showDeleteMovieSelection(update tgbotapi.Update, command *userDele
 	}
 
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, movieKeyboard...)
+
+	// Create pagination buttons
+	if len(movies) > pageSize {
+		paginationButtons := []tgbotapi.InlineKeyboardButton{}
+		if page > 0 {
+			paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData("◀️ Previous", DeleteMoviePreviousPage))
+		}
+		paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%d/%d", page+1, totalPages), "current_page"))
+		if page+1 < totalPages {
+			paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData("Next ▶️", DeleteMovieNextPage))
+		}
+
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, paginationButtons)
+	}
 
 	var keyboardConfirmCancel tgbotapi.InlineKeyboardMarkup
 	if len(command.selectedMovies) > 0 {
@@ -148,7 +184,7 @@ func (b *Bot) showDeleteMovieSelection(update tgbotapi.Update, command *userDele
 	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
 		command.chatID,
 		command.messageID,
-		"Select the movie\\(s\\) you want to delete",
+		fmt.Sprintf(utils.Escape("Select the movie(s) you want to delete - page %d/%d"), page+1, totalPages),
 		keyboard,
 	)
 	editMsg.ParseMode = "MarkdownV2"
