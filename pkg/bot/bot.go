@@ -41,6 +41,7 @@ type userAddMovie struct {
 type userDeleteMovie struct {
 	library                map[string]*radarr.Movie
 	searchResultsInLibrary map[string]*radarr.Movie
+	moviesForSelection     []*radarr.Movie // Movies to select from, either whole library or search results
 	selectedMovies         []*radarr.Movie
 	movie                  *radarr.Movie
 	confirmation           bool

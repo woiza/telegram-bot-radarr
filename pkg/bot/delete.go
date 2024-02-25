@@ -39,6 +39,12 @@ func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *rada
 		tmdbID := strconv.Itoa(int(movie.TmdbID))
 		command.library[tmdbID] = movie
 	}
+
+	// Sort the movies alphabetically based on their titles
+	sort.SliceStable(movies, func(i, j int) bool {
+		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
+	})
+	command.moviesForSelection = movies
 	command.chatID = message.Chat.ID
 	command.messageID = message.MessageID
 	b.setDeleteMovieState(userID, &command)
@@ -105,20 +111,7 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 func (b *Bot) showDeleteMovieSelection(update tgbotapi.Update, command *userDeleteMovie) bool {
 	var keyboard tgbotapi.InlineKeyboardMarkup
 
-	// Convert the map values (movies) to a slice
-	var movies []*radarr.Movie
-	moviesLibrary := command.library
-	if len(command.searchResultsInLibrary) > 0 {
-		moviesLibrary = command.searchResultsInLibrary
-	}
-	for _, movie := range moviesLibrary {
-		movies = append(movies, movie)
-	}
-
-	// Sort the movies alphabetically based on their titles
-	sort.SliceStable(movies, func(i, j int) bool {
-		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
-	})
+	movies := command.moviesForSelection
 
 	// Pagination parameters
 	page := command.page
@@ -228,6 +221,7 @@ func (b *Bot) handleDeleteSearchResults(update tgbotapi.Update, searchResults []
 		b.setDeleteMovieState(command.chatID, command)
 		b.processMovieSelectionForDelete(update, command)
 	} else {
+		command.moviesForSelection = moviesInLibrary
 		b.setDeleteMovieState(command.chatID, command)
 		b.showDeleteMovieSelection(update, command)
 	}
@@ -253,6 +247,11 @@ func (b *Bot) processMovieSelectionForDelete(update tgbotapi.Update, command *us
 			[]string{"Yes, delete these movies", "Cancel, clear command", "\U0001F519"},
 			[]string{DeleteMovieYes, DeleteMovieCancel, DeleteMovieGoBack},
 		)
+		// Sort the movies alphabetically based on their titles
+		sort.SliceStable(command.selectedMovies, func(i, j int) bool {
+			return utils.IgnoreArticles(strings.ToLower(command.selectedMovies[i].Title)) < utils.IgnoreArticles(strings.ToLower(command.selectedMovies[j].Title))
+		})
+
 		messageText.WriteString("Do you want to delete the following movies including all files?\n\n")
 		for _, movie := range command.selectedMovies {
 			messageText.WriteString(fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n",
