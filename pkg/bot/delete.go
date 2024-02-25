@@ -18,8 +18,10 @@ const (
 	DeleteMovieGoBack       = "DELETEMOVIE_GOBACK"
 	DeleteMovieYes          = "DELETEMOVIE_YES"
 	DeleteMovieTMDBID       = "DELETEMOVIE_TMDBID_"
+	DeleteMovieFirstPage    = "DELETEMOVIE_FIRST_PAGE"
 	DeleteMoviePreviousPage = "DELETEMOVIE_PREV_PAGE"
 	DeleteMovieNextPage     = "DELETEMOVIE_NEXT_PAGE"
+	DeleteMovieLastPage     = "DELETEMOVIE_LAST_PAGE"
 )
 
 func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *radarr.Radarr) {
@@ -81,6 +83,9 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 	}
 
 	switch update.CallbackQuery.Data {
+	case DeleteMovieFirstPage:
+		command.page = 0
+		return b.showDeleteMovieSelection(update, command)
 	case DeleteMoviePreviousPage:
 		if command.page > 0 {
 			command.page--
@@ -88,6 +93,10 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 		return b.showDeleteMovieSelection(update, command)
 	case DeleteMovieNextPage:
 		command.page++
+		return b.showDeleteMovieSelection(update, command)
+	case DeleteMovieLastPage:
+		totalPages := (len(command.moviesForSelection) + b.Config.MaxItems - 1) / b.Config.MaxItems
+		command.page = totalPages - 1
 		return b.showDeleteMovieSelection(update, command)
 	case DeleteMovieConfirm:
 		return b.processMovieSelectionForDelete(update, command)
@@ -148,11 +157,17 @@ func (b *Bot) showDeleteMovieSelection(update tgbotapi.Update, command *userDele
 	if len(movies) > pageSize {
 		paginationButtons := []tgbotapi.InlineKeyboardButton{}
 		if page > 0 {
-			paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData("◀️ Previous", DeleteMoviePreviousPage))
+			paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData("◀️", DeleteMoviePreviousPage))
 		}
 		paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%d/%d", page+1, totalPages), "current_page"))
 		if page+1 < totalPages {
-			paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData("Next ▶️", DeleteMovieNextPage))
+			paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData("▶️", DeleteMovieNextPage))
+		}
+		if page != 0 {
+			paginationButtons = append([]tgbotapi.InlineKeyboardButton{tgbotapi.NewInlineKeyboardButtonData("⏮️", DeleteMovieFirstPage)}, paginationButtons...)
+		}
+		if page+1 != totalPages {
+			paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData("⏭️", DeleteMovieLastPage))
 		}
 
 		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, paginationButtons)
