@@ -43,6 +43,21 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 		return false
 	}
 	switch update.CallbackQuery.Data {
+	case LibraryFirstPage:
+		command.page = 0
+		return b.showLibraryMenuFiltered(update, command)
+	case LibraryPreviousPage:
+		if command.page > 0 {
+			command.page--
+		}
+		return b.showLibraryMenuFiltered(update, command)
+	case LibraryNextPage:
+		command.page++
+		return b.showLibraryMenuFiltered(update, command)
+	case LibraryLastPage:
+		totalPages := (len(command.libraryFiltered) + b.Config.MaxItems - 1) / b.Config.MaxItems
+		command.page = totalPages - 1
+		return b.showLibraryMenuFiltered(update, command)
 	case LibraryMovieGoBack:
 		command.movie = nil
 		b.setActiveCommand(userID, LibraryFilteredActive)

@@ -18,6 +18,10 @@ const (
 	LibraryMenuActive     = "LIBRARYMENU"
 	LibraryFiltered       = "LIBRARYFILTERED"
 	CommandsCleared       = "All commands have been cleared"
+	LibraryFirstPage      = "LIBRARY_FIRST_PAGE"
+	LibraryPreviousPage   = "LIBRARY_PREV_PAGE"
+	LibraryNextPage       = "LIBRARY_NEXT_PAGE"
+	LibraryLastPage       = "LIBRARY_LAST_PAGE"
 )
 
 const (
@@ -123,7 +127,7 @@ func (b *Bot) showLibraryMenu(update tgbotapi.Update, command *userLibrary) bool
 			tgbotapi.NewInlineKeyboardButtonData("Cancel - clear command", LibraryCancel),
 		},
 	}
-
+	command.page = 0
 	b.sendMessageWithEditAndKeyboard(command, tgbotapi.InlineKeyboardMarkup{InlineKeyboard: keyboard}, "Select an option:")
 	return false
 }
@@ -195,10 +199,44 @@ func (b *Bot) showLibraryMenuFiltered(update tgbotapi.Update, command *userLibra
 		row = append(row, tgbotapi.NewInlineKeyboardButtonData("\U0001F519", LibraryFilteredGoBack))
 		inlineKeyboard = append(inlineKeyboard, row)
 	} else {
+
+		// Pagination parameters
+		page := command.page
+		pageSize := b.Config.MaxItems
+		totalPages := (len(filteredMovies) + pageSize - 1) / pageSize
+
+		// Calculate start and end index for the current page
+		startIndex := page * pageSize
+		endIndex := (page + 1) * pageSize
+		if endIndex > len(filteredMovies) {
+			endIndex = len(filteredMovies)
+		}
+
 		sort.SliceStable(filteredMovies, func(i, j int) bool {
 			return utils.IgnoreArticles(strings.ToLower(filteredMovies[i].Title)) < utils.IgnoreArticles(strings.ToLower(filteredMovies[j].Title))
 		})
-		inlineKeyboard = b.getMoviesAsInlineKeyboard(filteredMovies)
+		inlineKeyboard = b.getMoviesAsInlineKeyboard(filteredMovies[startIndex:endIndex])
+
+		// Create pagination buttons
+		if len(filteredMovies) > pageSize {
+			paginationButtons := []tgbotapi.InlineKeyboardButton{}
+			if page > 0 {
+				paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData("◀️", LibraryPreviousPage))
+			}
+			paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%d/%d", page+1, totalPages), "current_page"))
+			if page+1 < totalPages {
+				paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData("▶️", LibraryNextPage))
+			}
+			if page != 0 {
+				paginationButtons = append([]tgbotapi.InlineKeyboardButton{tgbotapi.NewInlineKeyboardButtonData("⏮️", LibraryFirstPage)}, paginationButtons...)
+			}
+			if page+1 != totalPages {
+				paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData("⏭️", LibraryLastPage))
+			}
+
+			inlineKeyboard = append(inlineKeyboard, paginationButtons)
+		}
+
 		row = append(row, tgbotapi.NewInlineKeyboardButtonData("\U0001F519", LibraryFilteredGoBack))
 		inlineKeyboard = append(inlineKeyboard, row)
 	}

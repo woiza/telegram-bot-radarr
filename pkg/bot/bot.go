@@ -61,6 +61,7 @@ type userLibrary struct {
 	lastSearch             time.Time
 	chatID                 int64
 	messageID              int
+	page                   int
 }
 
 type Bot struct {
