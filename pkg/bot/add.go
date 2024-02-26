@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	AddMovieTMDBID           = "ADDMOVIE_TMDBID_"
 	AddMovieYes              = "ADDMOVIE_YES"
 	AddMovieGoBack           = "ADDMOVIE_GOBACK"
 	AddMovieProfileGoBack    = "ADDMOVIE_QUALITY_GOBACK"
@@ -149,8 +150,8 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 		if strings.HasPrefix(update.CallbackQuery.Data, "TAG_") {
 			return b.handleAddMovieEditSelectTag(update, command)
 		}
-		// Check if it starts with "TMDBID_"
-		if strings.HasPrefix(update.CallbackQuery.Data, "TMDBID_") {
+		// Check if it starts with "ADDMOVIE_TMDBID_"
+		if strings.HasPrefix(update.CallbackQuery.Data, AddMovieTMDBID) {
 			return b.addMovieDetails(update, command)
 		}
 		return b.showAddMovieSearchResults(update, command)
@@ -178,7 +179,7 @@ func (b *Bot) showAddMovieSearchResults(update tgbotapi.Update, command *userAdd
 	for _, movie := range movies {
 		text.WriteString(fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n", utils.Escape(movie.Title), movie.TmdbID, movie.Year))
 		buttonLabels = append(buttonLabels, fmt.Sprintf("%v - %v", movie.Title, movie.Year))
-		buttonData = append(buttonData, "TMDBID_"+strconv.Itoa(int(movie.TmdbID)))
+		buttonData = append(buttonData, AddMovieTMDBID+strconv.Itoa(int(movie.TmdbID)))
 	}
 
 	keyboard := b.createKeyboard(buttonLabels, buttonData)
@@ -210,7 +211,7 @@ func (b *Bot) showAddMovieSearchResults(update tgbotapi.Update, command *userAdd
 }
 
 func (b *Bot) addMovieDetails(update tgbotapi.Update, command *userAddMovie) bool {
-	movieIDStr := strings.TrimPrefix(update.CallbackQuery.Data, "TMDBID_")
+	movieIDStr := strings.TrimPrefix(update.CallbackQuery.Data, AddMovieTMDBID)
 	command.movie = command.searchResults[movieIDStr]
 
 	var text strings.Builder
