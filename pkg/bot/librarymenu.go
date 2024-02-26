@@ -124,6 +124,7 @@ func (b *Bot) showLibraryMenu(update tgbotapi.Update, command *userLibrary) bool
 		},
 	}
 	command.page = 0
+	b.setLibraryState(command.chatID, command)
 	b.sendMessageWithEditAndKeyboard(command, tgbotapi.InlineKeyboardMarkup{InlineKeyboard: keyboard}, "Select an option:")
 	return false
 }
