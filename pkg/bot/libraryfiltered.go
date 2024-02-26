@@ -24,6 +24,10 @@ const (
 	LibraryMovieMonitorSearchNow = "LIBRARY_MOVIE_MONITOR_SEARCHNOW"
 	LibraryFilteredActive        = "LIBRARYFILTERED"
 	//LibraryMenuActive            = "LIBRARYMENU" already defined in librarymenu.go
+	LibraryFirstPage    = "LIBRARY_FIRST_PAGE"
+	LibraryPreviousPage = "LIBRARY_PREV_PAGE"
+	LibraryNextPage     = "LIBRARY_NEXT_PAGE"
+	LibraryLastPage     = "LIBRARY_LAST_PAGE"
 )
 
 const (

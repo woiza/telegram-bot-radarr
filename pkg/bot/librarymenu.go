@@ -18,10 +18,6 @@ const (
 	LibraryMenuActive     = "LIBRARYMENU"
 	LibraryFiltered       = "LIBRARYFILTERED"
 	CommandsCleared       = "All commands have been cleared"
-	LibraryFirstPage      = "LIBRARY_FIRST_PAGE"
-	LibraryPreviousPage   = "LIBRARY_PREV_PAGE"
-	LibraryNextPage       = "LIBRARY_NEXT_PAGE"
-	LibraryLastPage       = "LIBRARY_LAST_PAGE"
 )
 
 const (
