@@ -13,15 +13,15 @@ import (
 )
 
 const (
-	DeleteMovieConfirm      = "DELETEMOVIE_SUBMIT"
-	DeleteMovieCancel       = "DELETEMOVIE_CANCEL"
-	DeleteMovieGoBack       = "DELETEMOVIE_GOBACK"
-	DeleteMovieYes          = "DELETEMOVIE_YES"
-	DeleteMovieTMDBID       = "DELETEMOVIE_TMDBID_"
-	DeleteMovieFirstPage    = "DELETEMOVIE_FIRST_PAGE"
-	DeleteMoviePreviousPage = "DELETEMOVIE_PREV_PAGE"
-	DeleteMovieNextPage     = "DELETEMOVIE_NEXT_PAGE"
-	DeleteMovieLastPage     = "DELETEMOVIE_LAST_PAGE"
+	DeleteMovieConfirm      = "DELETE_MOVIE_SUBMIT"
+	DeleteMovieCancel       = "DELETE_MOVIE_CANCEL"
+	DeleteMovieGoBack       = "DELETE_MOVIE_GOBACK"
+	DeleteMovieYes          = "DELETE_MOVIE_YES"
+	DeleteMovieTMDBID       = "DELETE_MOVIE_TMDBID_"
+	DeleteMovieFirstPage    = "DELETE_MOVIE_FIRST_PAGE"
+	DeleteMoviePreviousPage = "DELETE_MOVIE_PREV_PAGE"
+	DeleteMovieNextPage     = "DELETE_MOVIE_NEXT_PAGE"
+	DeleteMovieLastPage     = "DELETE_MOVIE_LAST_PAGE"
 )
 
 func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *radarr.Radarr) {
@@ -67,7 +67,6 @@ func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *rada
 
 	b.setDeleteMovieState(userID, &command)
 	b.handleDeleteSearchResults(update, searchResults, &command)
-	return
 
 }
 func (b *Bot) deleteMovie(update tgbotapi.Update) bool {

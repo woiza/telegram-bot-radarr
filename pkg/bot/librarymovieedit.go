@@ -68,9 +68,7 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 
 	messageText := fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(movie.Title), movie.ImdbID, movie.Year)
 
-	var keyboard tgbotapi.InlineKeyboardMarkup
-
-	keyboard = b.createKeyboard(
+	keyboard := b.createKeyboard(
 		[]string{"Monitored: " + monitorIcon, qualityProfile},
 		[]string{LibraryMovieEditToggleMonitor, LibraryMovieEditToggleQualityProfile},
 	)
@@ -95,8 +93,7 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, tagsKeyboard...)
 
-	var keyboardSubmitCancelGoBack tgbotapi.InlineKeyboardMarkup
-	keyboardSubmitCancelGoBack = b.createKeyboard(
+	keyboardSubmitCancelGoBack := b.createKeyboard(
 		[]string{"Submit - Confirm Changes", "Cancel - clear command", "\U0001F519"},
 		[]string{LibraryMovieEditSubmitChanges, LibraryMovieEditCancel, LibraryMovieEditGoBack},
 	)

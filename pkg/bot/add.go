@@ -392,8 +392,7 @@ func (b *Bot) showAddMovieTags(update tgbotapi.Update, command *userAddMovie) bo
 	var keyboard tgbotapi.InlineKeyboardMarkup
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, tagsKeyboard...)
 
-	var keyboardSubmitCancelGoBack tgbotapi.InlineKeyboardMarkup
-	keyboardSubmitCancelGoBack = b.createKeyboard(
+	keyboardSubmitCancelGoBack := b.createKeyboard(
 		[]string{"Done - Continue", "\U0001F519"},
 		[]string{AddMovieTagsDone, AddMovieTagsGoBack},
 	)
@@ -507,9 +506,8 @@ func (b *Bot) handleAddMovieColMon(update tgbotapi.Update, command *userAddMovie
 
 func (b *Bot) addMovieToLibrary(update tgbotapi.Update, command *userAddMovie) bool {
 	var tagIDs []int
-	for _, tag := range command.selectedTags {
-		tagIDs = append(tagIDs, tag)
-	}
+	tagIDs = append(tagIDs, command.selectedTags...)
+
 	// does anyone ever user anything other than announced?
 	addMovieInput := radarr.AddMovieInput{
 		MinimumAvailability: "announced",

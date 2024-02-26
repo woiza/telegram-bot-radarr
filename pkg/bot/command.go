@@ -97,7 +97,7 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 		}
 		var monitoredMoviesIDs []int64
 		for _, movie := range movies {
-			if movie.Monitored == true {
+			if movie.Monitored {
 				monitoredMoviesIDs = append(monitoredMoviesIDs, movie.ID)
 			}
 		}

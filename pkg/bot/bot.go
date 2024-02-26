@@ -43,8 +43,6 @@ type userDeleteMovie struct {
 	searchResultsInLibrary map[string]*radarr.Movie
 	moviesForSelection     []*radarr.Movie // Movies to select from, either whole library or search results
 	selectedMovies         []*radarr.Movie
-	movie                  *radarr.Movie
-	confirmation           bool
 	chatID                 int64
 	messageID              int
 	page                   int
@@ -171,7 +169,6 @@ func (b *Bot) HandleUpdate(update tgbotapi.Update) {
 			b.clearState(update)
 			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, CommandsClearedMessage)
 			b.sendMessage(msg)
-			break
 		}
 	}
 	if update.Message == nil { // ignore any non-Message Updates
