@@ -82,6 +82,9 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 	}
 
 	switch update.CallbackQuery.Data {
+	// ignore click on page number
+	case "current_page":
+		return false
 	case DeleteMovieFirstPage:
 		command.page = 0
 		return b.showDeleteMovieSelection(command)

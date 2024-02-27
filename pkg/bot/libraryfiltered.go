@@ -47,6 +47,9 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 		return false
 	}
 	switch update.CallbackQuery.Data {
+	// ignore click on page number
+	case "current_page":
+		return false
 	case LibraryFirstPage:
 		command.page = 0
 		return b.showLibraryMenuFiltered(command)
