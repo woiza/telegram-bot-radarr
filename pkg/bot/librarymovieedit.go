@@ -153,13 +153,31 @@ func (b *Bot) handleLibraryMovieEditSelectTag(update tgbotapi.Update, command *u
 }
 
 func (b *Bot) handleLibraryMovieEditSubmitChanges(update tgbotapi.Update, command *userLibrary) bool {
-	bulkEdit := radarr.BulkEdit{
-		MovieIDs:         []int64{command.movie.ID},
-		Monitored:        &command.selectedMonitoring,
-		QualityProfileID: &command.selectedQualityProfile,
-		Tags:             command.selectedTags,
-		ApplyTags:        starr.TagsReplace.Ptr(),
+	var bulkEdit radarr.BulkEdit
+
+	// If no tags are selected, remove all tags
+	if len(command.selectedTags) == 0 {
+		var tagIDs []int
+		for _, tag := range command.allTags {
+			tagIDs = append(tagIDs, tag.ID)
+		}
+		bulkEdit = radarr.BulkEdit{
+			MovieIDs:         []int64{command.movie.ID},
+			Monitored:        &command.selectedMonitoring,
+			QualityProfileID: &command.selectedQualityProfile,
+			Tags:             tagIDs,
+			ApplyTags:        starr.TagsRemove.Ptr(),
+		}
+	} else {
+		bulkEdit = radarr.BulkEdit{
+			MovieIDs:         []int64{command.movie.ID},
+			Monitored:        &command.selectedMonitoring,
+			QualityProfileID: &command.selectedQualityProfile,
+			Tags:             command.selectedTags,
+			ApplyTags:        starr.TagsReplace.Ptr(),
+		}
 	}
+
 	_, err := b.RadarrServer.EditMovies(&bulkEdit)
 	if err != nil {
 		msg := tgbotapi.NewMessage(command.chatID, err.Error())
