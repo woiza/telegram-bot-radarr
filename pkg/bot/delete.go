@@ -226,12 +226,6 @@ func (b *Bot) handleDeleteSearchResults(searchResults []*radarr.Movie, command *
 		return
 	}
 
-	command.searchResultsInLibrary = make(map[string]*radarr.Movie, len(moviesInLibrary))
-	for _, movie := range moviesInLibrary {
-		tmdbID := strconv.Itoa(int(movie.TmdbID))
-		command.searchResultsInLibrary[tmdbID] = movie
-	}
-
 	if len(moviesInLibrary) == 1 {
 		command.selectedMovies = make([]*radarr.Movie, len(moviesInLibrary))
 		command.selectedMovies[0] = moviesInLibrary[0]

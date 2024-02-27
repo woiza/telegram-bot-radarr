@@ -39,13 +39,12 @@ type userAddMovie struct {
 }
 
 type userDeleteMovie struct {
-	library                map[string]*radarr.Movie
-	searchResultsInLibrary map[string]*radarr.Movie
-	moviesForSelection     []*radarr.Movie // Movies to select from, either whole library or search results
-	selectedMovies         []*radarr.Movie
-	chatID                 int64
-	messageID              int
-	page                   int
+	library            map[string]*radarr.Movie
+	moviesForSelection []*radarr.Movie // Movies to select from, either whole library or search results
+	selectedMovies     []*radarr.Movie
+	chatID             int64
+	messageID          int
+	page               int
 }
 
 type userLibrary struct {
