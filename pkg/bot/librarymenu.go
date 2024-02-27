@@ -145,43 +145,43 @@ func (b *Bot) showLibraryMenuFiltered(command *userLibrary) bool {
 			return movie.Monitored
 		})
 		command.filter = FilterMonitored
-		responseText = "Monitored movies:"
+		responseText = "Monitored Movies"
 	case FilterUnmonitored:
 		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
 			return !movie.Monitored
 		})
 		command.filter = FilterUnmonitored
-		responseText = "Unmonitored movies:"
+		responseText = "Unmonitored Movies"
 	case FilterMissing:
 		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
 			return movie.SizeOnDisk == 0 && movie.Monitored
 		})
 		command.filter = FilterMissing
-		responseText = "Missing movies:"
+		responseText = "Missing Movies"
 	case FilterWanted:
 		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
 			return movie.SizeOnDisk == 0 && movie.Monitored && movie.IsAvailable
 		})
 		command.filter = FilterWanted
-		responseText = "Wanted movies:"
+		responseText = "Wanted Movies"
 	case FilterOnDisk:
 		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
 			return movie.SizeOnDisk > 0
 		})
 		command.filter = FilterOnDisk
-		responseText = "Movies on disk:"
+		responseText = "Movies on Disk"
 	case FilterShowAll:
 		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
 			return true // All movies included
 		})
 		command.filter = FilterShowAll
-		responseText = "All Movies:"
+		responseText = "All Movies"
 	case FilterSearchResults:
 		for _, movie := range command.searchResultsInLibrary {
 			filteredMovies = append(filteredMovies, movie)
 		}
 		command.filter = FilterSearchResults
-		responseText = "Search Results:"
+		responseText = "Search Results"
 	default:
 		command.filter = ""
 		b.setLibraryState(command.chatID, command)
@@ -208,6 +208,8 @@ func (b *Bot) showLibraryMenuFiltered(command *userLibrary) bool {
 		if endIndex > len(filteredMovies) {
 			endIndex = len(filteredMovies)
 		}
+
+		responseText = fmt.Sprintf("%s - page %d/%d", responseText, page+1, totalPages)
 
 		sort.SliceStable(filteredMovies, func(i, j int) bool {
 			return utils.IgnoreArticles(strings.ToLower(filteredMovies[i].Title)) < utils.IgnoreArticles(strings.ToLower(filteredMovies[j].Title))
