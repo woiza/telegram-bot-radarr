@@ -179,9 +179,7 @@ func (b *Bot) showLibraryMenuFiltered(command *userLibrary) bool {
 		command.filter = FilterShowAll
 		responseText = "All Movies"
 	case FilterSearchResults:
-		for _, movie := range command.searchResultsInLibrary {
-			filteredMovies = append(filteredMovies, movie)
-		}
+		filteredMovies = command.searchResultsInLibrary
 		command.filter = FilterSearchResults
 		responseText = "Search Results"
 	default:
@@ -211,7 +209,7 @@ func (b *Bot) showLibraryMenuFiltered(command *userLibrary) bool {
 			endIndex = len(filteredMovies)
 		}
 
-		responseText = fmt.Sprintf("%s - Page %d/%d", responseText, page+1, totalPages)
+		responseText = fmt.Sprintf("%s - page %d/%d", responseText, page+1, totalPages)
 
 		sort.SliceStable(filteredMovies, func(i, j int) bool {
 			return utils.IgnoreArticles(strings.ToLower(filteredMovies[i].Title)) < utils.IgnoreArticles(strings.ToLower(filteredMovies[j].Title))
@@ -295,11 +293,7 @@ func (b *Bot) handleSearchResults(update tgbotapi.Update, searchResults []*radar
 		return
 	}
 
-	command.searchResultsInLibrary = make(map[string]*radarr.Movie, len(moviesInLibrary))
-	for _, movie := range moviesInLibrary {
-		tmdbID := strconv.Itoa(int(movie.TmdbID))
-		command.searchResultsInLibrary[tmdbID] = movie
-	}
+	command.searchResultsInLibrary = moviesInLibrary
 
 	// go to movie details
 	if len(moviesInLibrary) == 1 {
