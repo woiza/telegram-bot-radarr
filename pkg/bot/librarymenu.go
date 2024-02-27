@@ -46,10 +46,17 @@ func (b *Bot) processLibraryCommand(update tgbotapi.Update, userID int64, r *rad
 		b.sendMessage(msg)
 		return
 	}
+	movies, err := r.GetMovie(0)
+	if err != nil {
+		msg := tgbotapi.NewMessage(userID, err.Error())
+		b.sendMessage(msg)
+		return
+	}
 
 	command := userLibrary{}
 	command.qualityProfiles = qualityProfiles
 	command.allTags = tags
+	command.library = movies
 	command.filter = ""
 	command.chatID = message.Chat.ID
 	command.messageID = message.MessageID
@@ -130,48 +137,43 @@ func (b *Bot) showLibraryMenu(command *userLibrary) bool {
 }
 
 func (b *Bot) showLibraryMenuFiltered(command *userLibrary) bool {
-	movies, err := b.RadarrServer.GetMovie(0)
-	if err != nil {
-		msg := tgbotapi.NewMessage(command.chatID, err.Error())
-		b.sendMessage(msg)
-		return false
-	}
+
 	var filteredMovies []*radarr.Movie
 	var responseText string
 
 	switch command.filter {
 	case FilterMonitored:
-		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
+		filteredMovies = filterMovies(command.library, func(movie *radarr.Movie) bool {
 			return movie.Monitored
 		})
 		command.filter = FilterMonitored
 		responseText = "Monitored Movies"
 	case FilterUnmonitored:
-		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
+		filteredMovies = filterMovies(command.library, func(movie *radarr.Movie) bool {
 			return !movie.Monitored
 		})
 		command.filter = FilterUnmonitored
 		responseText = "Unmonitored Movies"
 	case FilterMissing:
-		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
+		filteredMovies = filterMovies(command.library, func(movie *radarr.Movie) bool {
 			return movie.SizeOnDisk == 0 && movie.Monitored
 		})
 		command.filter = FilterMissing
 		responseText = "Missing Movies"
 	case FilterWanted:
-		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
+		filteredMovies = filterMovies(command.library, func(movie *radarr.Movie) bool {
 			return movie.SizeOnDisk == 0 && movie.Monitored && movie.IsAvailable
 		})
 		command.filter = FilterWanted
 		responseText = "Wanted Movies"
 	case FilterOnDisk:
-		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
+		filteredMovies = filterMovies(command.library, func(movie *radarr.Movie) bool {
 			return movie.SizeOnDisk > 0
 		})
 		command.filter = FilterOnDisk
 		responseText = "Movies on Disk"
 	case FilterShowAll:
-		filteredMovies = filterMovies(movies, func(movie *radarr.Movie) bool {
+		filteredMovies = filterMovies(command.library, func(movie *radarr.Movie) bool {
 			return true // All movies included
 		})
 		command.filter = FilterShowAll
@@ -209,7 +211,7 @@ func (b *Bot) showLibraryMenuFiltered(command *userLibrary) bool {
 			endIndex = len(filteredMovies)
 		}
 
-		responseText = fmt.Sprintf("%s - page %d/%d", responseText, page+1, totalPages)
+		responseText = fmt.Sprintf("%s - Page %d/%d", responseText, page+1, totalPages)
 
 		sort.SliceStable(filteredMovies, func(i, j int) bool {
 			return utils.IgnoreArticles(strings.ToLower(filteredMovies[i].Title)) < utils.IgnoreArticles(strings.ToLower(filteredMovies[j].Title))
