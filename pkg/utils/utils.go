@@ -49,7 +49,7 @@ func PrepareRootFolders(rootFolders []*radarr.RootFolder) (msgtext string) {
 
 	formatter := fmt.Sprintf("`%%-%dv%%11v`\n", maxLength+1)
 	for key, value := range disks {
-		text.WriteString(fmt.Sprintf(formatter, key, value))
+		fmt.Fprintf(&text, formatter, key, value)
 	}
 	return text.String()
 }

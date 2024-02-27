@@ -25,13 +25,13 @@ func (b *Bot) sendUpcoming(movies []*radarr.Movie, msg *tgbotapi.MessageConfig) 
 		var text strings.Builder
 		for _, movie := range movies[i:end] {
 			if !movie.InCinemas.IsZero() {
-				text.WriteString(fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- cinema %v\n", utils.Escape(movie.Title), movie.ImdbID, utils.Escape(movie.InCinemas.Format("02 Jan 2006"))))
+				fmt.Fprintf(&text, "[%v](https://www.imdb.com/title/%v) \\- cinema %v\n", utils.Escape(movie.Title), movie.ImdbID, utils.Escape(movie.InCinemas.Format("02 Jan 2006")))
 			}
 			if !movie.DigitalRelease.IsZero() {
-				text.WriteString(fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- digital %v\n", utils.Escape(movie.Title), movie.ImdbID, utils.Escape(movie.DigitalRelease.Format("02 Jan 2006"))))
+				fmt.Fprintf(&text, "[%v](https://www.imdb.com/title/%v) \\- digital %v\n", utils.Escape(movie.Title), movie.ImdbID, utils.Escape(movie.DigitalRelease.Format("02 Jan 2006")))
 			}
 			if !movie.PhysicalRelease.IsZero() {
-				text.WriteString(fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- physical %v\n", utils.Escape(movie.Title), movie.ImdbID, utils.Escape(movie.PhysicalRelease.Format("02 Jan 2006"))))
+				fmt.Fprintf(&text, "[%v](https://www.imdb.com/title/%v) \\- physical %v\n", utils.Escape(movie.Title), movie.ImdbID, utils.Escape(movie.PhysicalRelease.Format("02 Jan 2006")))
 			}
 		}
 

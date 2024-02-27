@@ -247,9 +247,9 @@ func (b *Bot) processMovieSelectionForDelete(command *userDeleteMovie) bool {
 			[]string{"Yes, delete this movie", "Cancel, clear command", "\U0001F519"},
 			[]string{DeleteMovieYes, DeleteMovieCancel, DeleteMovieGoBack},
 		)
-		messageText.WriteString("Do you want to delete the following movie including all files?\n\n")
-		messageText.WriteString(fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n",
-			utils.Escape(command.selectedMovies[0].Title), command.selectedMovies[0].ImdbID, command.selectedMovies[0].Year))
+		fmt.Fprintf(&messageText, "Do you want to delete the following movie including all files?\n\n")
+		fmt.Fprintf(&messageText, "[%v](https://www.imdb.com/title/%v) \\- _%v_\n",
+			utils.Escape(command.selectedMovies[0].Title), command.selectedMovies[0].ImdbID, command.selectedMovies[0].Year)
 		disablePreview = false
 	case 0:
 		return b.showDeleteMovieSelection(command)
@@ -263,10 +263,10 @@ func (b *Bot) processMovieSelectionForDelete(command *userDeleteMovie) bool {
 			return utils.IgnoreArticles(strings.ToLower(command.selectedMovies[i].Title)) < utils.IgnoreArticles(strings.ToLower(command.selectedMovies[j].Title))
 		})
 
-		messageText.WriteString("Do you want to delete the following movies including all files?\n\n")
+		fmt.Fprintf(&messageText, "Do you want to delete the following movies including all files?\n\n")
 		for _, movie := range command.selectedMovies {
-			messageText.WriteString(fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n",
-				utils.Escape(movie.Title), movie.ImdbID, movie.Year))
+			fmt.Fprintf(&messageText, "[%v](https://www.imdb.com/title/%v) \\- _%v_\n",
+				utils.Escape(movie.Title), movie.ImdbID, movie.Year)
 		}
 		disablePreview = true
 	}
