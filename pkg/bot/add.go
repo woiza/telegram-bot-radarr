@@ -177,7 +177,7 @@ func (b *Bot) showAddMovieSearchResults(command *userAddMovie) bool {
 	var responseText string
 
 	for _, movie := range movies {
-		text.WriteString(fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n", utils.Escape(movie.Title), movie.TmdbID, movie.Year))
+		fmt.Fprintf(&text, "[%v](https://www.imdb.com/title/%v) \\- _%v_\n", utils.Escape(movie.Title), movie.TmdbID, movie.Year)
 		buttonLabels = append(buttonLabels, fmt.Sprintf("%v - %v", movie.Title, movie.Year))
 		buttonData = append(buttonData, AddMovieTMDBID+strconv.Itoa(int(movie.TmdbID)))
 	}
