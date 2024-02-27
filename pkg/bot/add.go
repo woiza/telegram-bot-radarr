@@ -66,7 +66,7 @@ func (b *Bot) processAddCommand(update tgbotapi.Update, userID int64, r *radarr.
 
 	b.setAddMovieState(command.chatID, &command)
 	b.setActiveCommand(command.chatID, AddMovieCommand)
-	b.showAddMovieSearchResults(update, &command)
+	b.showAddMovieSearchResults(&command)
 }
 
 func (b *Bot) addMovie(update tgbotapi.Update) bool {
@@ -85,48 +85,48 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 		return b.handleAddMovieYes(update, command)
 	case AddMovieGoBack:
 		b.setAddMovieState(command.chatID, command)
-		return b.showAddMovieSearchResults(update, command)
+		return b.showAddMovieSearchResults(command)
 	case AddMovieProfileGoBack:
-		return b.showAddMovieSearchResults(update, command)
+		return b.showAddMovieSearchResults(command)
 	case AddMovieRootFolderGoBack:
 		if len(command.allProfiles) == 1 {
-			return b.showAddMovieSearchResults(update, command)
+			return b.showAddMovieSearchResults(command)
 		}
-		return b.showAddMovieProfiles(update, command)
+		return b.showAddMovieProfiles(command)
 	case AddMovieTagsGoBack:
 		if len(command.allRootFolders) == 1 && len(command.allProfiles) == 1 {
-			return b.showAddMovieSearchResults(update, command)
+			return b.showAddMovieSearchResults(command)
 		}
 		if len(command.allRootFolders) == 1 {
-			return b.showAddMovieProfiles(update, command)
+			return b.showAddMovieProfiles(command)
 		}
-		return b.showAddMovieRootFolders(update, command)
+		return b.showAddMovieRootFolders(command)
 	case AddMovieAddOptionsGoBack:
 		// Check if there are no tags
 		if len(command.allTags) == 0 {
 			// Check if there is only one root folder and one profile
 			if len(command.allRootFolders) == 1 && len(command.allProfiles) == 1 {
-				return b.showAddMovieSearchResults(update, command)
+				return b.showAddMovieSearchResults(command)
 			}
 			// Check if there is only one root folder
 			if len(command.allRootFolders) == 1 && len(command.allProfiles) > 1 {
-				return b.showAddMovieProfiles(update, command)
+				return b.showAddMovieProfiles(command)
 			}
 			// Check if there is only one profile
 			if len(command.allProfiles) == 1 && len(command.allRootFolders) > 1 {
-				return b.showAddMovieRootFolders(update, command)
+				return b.showAddMovieRootFolders(command)
 			}
 			// If there are multiple root folders and profiles, go to root folders
-			return b.showAddMovieRootFolders(update, command)
+			return b.showAddMovieRootFolders(command)
 		}
 		// If there are tags, go to the tags step
-		return b.showAddMovieTags(update, command)
+		return b.showAddMovieTags(command)
 	case AddMovieCancel:
 		b.clearState(update)
 		b.sendMessageWithEdit(command, CommandsCleared)
 		return false
 	case AddMovieTagsDone:
-		return b.showAddMovieAddOptions(update, command)
+		return b.showAddMovieAddOptions(command)
 	case AddMovieMonSea:
 		return b.handleAddMovieMonSea(update, command)
 	case AddMovieMon:
@@ -154,11 +154,11 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 		if strings.HasPrefix(update.CallbackQuery.Data, AddMovieTMDBID) {
 			return b.addMovieDetails(update, command)
 		}
-		return b.showAddMovieSearchResults(update, command)
+		return b.showAddMovieSearchResults(command)
 	}
 }
 
-func (b *Bot) showAddMovieSearchResults(update tgbotapi.Update, command *userAddMovie) bool {
+func (b *Bot) showAddMovieSearchResults(command *userAddMovie) bool {
 
 	// Extract movies from the map
 	movies := make([]*radarr.Movie, 0, len(command.searchResults))
@@ -285,13 +285,13 @@ func (b *Bot) handleAddMovieYes(update tgbotapi.Update, command *userAddMovie) b
 	command.allTags = tags
 
 	b.setAddMovieState(command.chatID, command)
-	return b.showAddMovieProfiles(update, command)
+	return b.showAddMovieProfiles(command)
 }
 
-func (b *Bot) showAddMovieProfiles(update tgbotapi.Update, command *userAddMovie) bool {
+func (b *Bot) showAddMovieProfiles(command *userAddMovie) bool {
 	// If there is only one profile, skip this step
 	if len(command.allProfiles) == 1 {
-		return b.showAddMovieRootFolders(update, command)
+		return b.showAddMovieRootFolders(command)
 	}
 	var profileKeyboard [][]tgbotapi.InlineKeyboardButton
 	for _, profile := range command.allProfiles {
@@ -330,13 +330,13 @@ func (b *Bot) handleAddMovieProfile(update tgbotapi.Update, command *userAddMovi
 	}
 	command.profileID = int64(profileID)
 	b.setAddMovieState(command.chatID, command)
-	return b.showAddMovieRootFolders(update, command)
+	return b.showAddMovieRootFolders(command)
 }
 
-func (b *Bot) showAddMovieRootFolders(update tgbotapi.Update, command *userAddMovie) bool {
+func (b *Bot) showAddMovieRootFolders(command *userAddMovie) bool {
 	// If there is only one root folder, skip this step
 	if len(command.allRootFolders) == 1 {
-		return b.showAddMovieTags(update, command)
+		return b.showAddMovieTags(command)
 	}
 	var rootFolderKeyboard [][]tgbotapi.InlineKeyboardButton
 	for _, rootFolder := range command.allRootFolders {
@@ -367,13 +367,13 @@ func (b *Bot) showAddMovieRootFolders(update tgbotapi.Update, command *userAddMo
 func (b *Bot) handleAddMovieRootFolder(update tgbotapi.Update, command *userAddMovie) bool {
 	command.rootFolder = strings.TrimPrefix(update.CallbackQuery.Data, "ROOTFOLDER_")
 	b.setAddMovieState(command.chatID, command)
-	return b.showAddMovieTags(update, command)
+	return b.showAddMovieTags(command)
 }
 
-func (b *Bot) showAddMovieTags(update tgbotapi.Update, command *userAddMovie) bool {
+func (b *Bot) showAddMovieTags(command *userAddMovie) bool {
 	// If there are no tags, skip this step
 	if len(command.allTags) == 0 {
-		return b.showAddMovieAddOptions(update, command)
+		return b.showAddMovieAddOptions(command)
 	}
 	var tagsKeyboard [][]tgbotapi.InlineKeyboardButton
 	for _, tag := range command.allTags {
@@ -434,10 +434,10 @@ func (b *Bot) handleAddMovieEditSelectTag(update tgbotapi.Update, command *userA
 	}
 
 	b.setAddMovieState(command.chatID, command)
-	return b.showAddMovieTags(update, command)
+	return b.showAddMovieTags(command)
 }
 
-func (b *Bot) showAddMovieAddOptions(update tgbotapi.Update, command *userAddMovie) bool {
+func (b *Bot) showAddMovieAddOptions(command *userAddMovie) bool {
 	keyboard := b.createKeyboard(
 		[]string{"Add movie monitored + search now", "Add movie monitored", "Add movie unmonitored", "Add collection monitored + search now", "Add collection monitored", "Cancel, clear command", "\U0001F519"},
 		[]string{AddMovieMonSea, AddMovieMon, AddMovieUnMon, AddMovieColSea, AddMovieColMon, AddMovieCancel, AddMovieAddOptionsGoBack},

@@ -49,29 +49,29 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 	switch update.CallbackQuery.Data {
 	case LibraryFirstPage:
 		command.page = 0
-		return b.showLibraryMenuFiltered(update, command)
+		return b.showLibraryMenuFiltered(command)
 	case LibraryPreviousPage:
 		if command.page > 0 {
 			command.page--
 		}
-		return b.showLibraryMenuFiltered(update, command)
+		return b.showLibraryMenuFiltered(command)
 	case LibraryNextPage:
 		command.page++
-		return b.showLibraryMenuFiltered(update, command)
+		return b.showLibraryMenuFiltered(command)
 	case LibraryLastPage:
 		totalPages := (len(command.libraryFiltered) + b.Config.MaxItems - 1) / b.Config.MaxItems
 		command.page = totalPages - 1
-		return b.showLibraryMenuFiltered(update, command)
+		return b.showLibraryMenuFiltered(command)
 	case LibraryMovieGoBack:
 		command.movie = nil
 		b.setActiveCommand(userID, LibraryFilteredActive)
 		b.setLibraryState(command.chatID, command)
-		return b.showLibraryMenuFiltered(update, command)
+		return b.showLibraryMenuFiltered(command)
 	case LibraryFilteredGoBack:
 		command.filter = ""
 		b.setActiveCommand(userID, LibraryMenuActive)
 		b.setLibraryState(command.chatID, command)
-		return b.showLibraryMenu(update, command)
+		return b.showLibraryMenu(command)
 	case LibraryMovieMonitor:
 		return b.handleLibraryMovieMonitor(update, command)
 	case LibraryMovieUnmonitor:
@@ -79,13 +79,13 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 	case LibraryMovieSearch:
 		return b.handleLibraryMovieSearch(update, command)
 	case LibraryMovieDelete:
-		return b.handleLibraryMovieDelete(update, command)
+		return b.handleLibraryMovieDelete(command)
 	case LibraryMovieDeleteYes:
 		return b.handleLibraryMovieDeleteYes(update, command)
 	case LibraryMovieDeleteNo:
 		return b.showLibraryMovieDetail(update, command)
 	case LibraryMovieEdit:
-		return b.handleLibraryMovieEdit(update, command)
+		return b.handleLibraryMovieEdit(command)
 	case LibraryMovieMonitorSearchNow:
 		return b.handleLibraryMovieMonitorSearchNow(update, command)
 	default:
@@ -275,7 +275,7 @@ func (b *Bot) handleLibraryMovieMonitorSearchNow(update tgbotapi.Update, command
 	return b.showLibraryMovieDetail(update, command)
 }
 
-func (b *Bot) handleLibraryMovieDelete(update tgbotapi.Update, command *userLibrary) bool {
+func (b *Bot) handleLibraryMovieDelete(command *userLibrary) bool {
 	messageText := fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(command.movie.Title), command.movie.ImdbID, command.movie.Year)
 	keyboard := b.createKeyboard(
 		[]string{"Yes, delete this movie", "\U0001F519"},
@@ -309,10 +309,10 @@ func (b *Bot) handleLibraryMovieDeleteYes(update tgbotapi.Update, command *userL
 	return true
 }
 
-func (b *Bot) handleLibraryMovieEdit(update tgbotapi.Update, command *userLibrary) bool {
+func (b *Bot) handleLibraryMovieEdit(command *userLibrary) bool {
 	b.setLibraryState(command.chatID, command)
 	b.setActiveCommand(command.chatID, LibraryMovieEditCommand)
-	return b.showLibraryMovieEdit(update, command)
+	return b.showLibraryMovieEdit(command)
 }
 
 func findQualityProfileByID(qualityProfiles []*radarr.QualityProfile, qualityProfileID int64) *radarr.QualityProfile {

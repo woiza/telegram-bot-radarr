@@ -54,7 +54,7 @@ func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *rada
 	criteria := update.Message.CommandArguments()
 	// no search criteria --> show complete library and return
 	if len(criteria) < 1 {
-		b.showDeleteMovieSelection(update, &command)
+		b.showDeleteMovieSelection(&command)
 		return
 	}
 
@@ -66,7 +66,7 @@ func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *rada
 	}
 
 	b.setDeleteMovieState(userID, &command)
-	b.handleDeleteSearchResults(update, searchResults, &command)
+	b.handleDeleteSearchResults(searchResults, &command)
 
 }
 func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
@@ -84,25 +84,25 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 	switch update.CallbackQuery.Data {
 	case DeleteMovieFirstPage:
 		command.page = 0
-		return b.showDeleteMovieSelection(update, command)
+		return b.showDeleteMovieSelection(command)
 	case DeleteMoviePreviousPage:
 		if command.page > 0 {
 			command.page--
 		}
-		return b.showDeleteMovieSelection(update, command)
+		return b.showDeleteMovieSelection(command)
 	case DeleteMovieNextPage:
 		command.page++
-		return b.showDeleteMovieSelection(update, command)
+		return b.showDeleteMovieSelection(command)
 	case DeleteMovieLastPage:
 		totalPages := (len(command.moviesForSelection) + b.Config.MaxItems - 1) / b.Config.MaxItems
 		command.page = totalPages - 1
-		return b.showDeleteMovieSelection(update, command)
+		return b.showDeleteMovieSelection(command)
 	case DeleteMovieConfirm:
-		return b.processMovieSelectionForDelete(update, command)
+		return b.processMovieSelectionForDelete(command)
 	case DeleteMovieYes:
 		return b.handleDeleteMovieYes(update, command)
 	case DeleteMovieGoBack:
-		return b.showDeleteMovieSelection(update, command)
+		return b.showDeleteMovieSelection(command)
 	case DeleteMovieCancel:
 		b.clearState(update)
 		b.sendMessageWithEdit(command, CommandsCleared)
@@ -116,7 +116,7 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 	}
 }
 
-func (b *Bot) showDeleteMovieSelection(update tgbotapi.Update, command *userDeleteMovie) bool {
+func (b *Bot) showDeleteMovieSelection(command *userDeleteMovie) bool {
 	var keyboard tgbotapi.InlineKeyboardMarkup
 
 	movies := command.moviesForSelection
@@ -201,7 +201,7 @@ func (b *Bot) showDeleteMovieSelection(update tgbotapi.Update, command *userDele
 	return false
 }
 
-func (b *Bot) handleDeleteSearchResults(update tgbotapi.Update, searchResults []*radarr.Movie, command *userDeleteMovie) {
+func (b *Bot) handleDeleteSearchResults(searchResults []*radarr.Movie, command *userDeleteMovie) {
 	if len(searchResults) == 0 {
 		b.sendMessageWithEdit(command, "No movies found matching your search criteria")
 		return
@@ -233,14 +233,14 @@ func (b *Bot) handleDeleteSearchResults(update tgbotapi.Update, searchResults []
 		command.selectedMovies = make([]*radarr.Movie, len(moviesInLibrary))
 		command.selectedMovies[0] = moviesInLibrary[0]
 		b.setDeleteMovieState(command.chatID, command)
-		b.processMovieSelectionForDelete(update, command)
+		b.processMovieSelectionForDelete(command)
 	} else {
 		command.moviesForSelection = moviesInLibrary
 		b.setDeleteMovieState(command.chatID, command)
-		b.showDeleteMovieSelection(update, command)
+		b.showDeleteMovieSelection(command)
 	}
 }
-func (b *Bot) processMovieSelectionForDelete(update tgbotapi.Update, command *userDeleteMovie) bool {
+func (b *Bot) processMovieSelectionForDelete(command *userDeleteMovie) bool {
 	var keyboard tgbotapi.InlineKeyboardMarkup
 	var messageText strings.Builder
 	var disablePreview bool
@@ -255,7 +255,7 @@ func (b *Bot) processMovieSelectionForDelete(update tgbotapi.Update, command *us
 			utils.Escape(command.selectedMovies[0].Title), command.selectedMovies[0].ImdbID, command.selectedMovies[0].Year))
 		disablePreview = false
 	case 0:
-		return b.showDeleteMovieSelection(update, command)
+		return b.showDeleteMovieSelection(command)
 	default:
 		keyboard = b.createKeyboard(
 			[]string{"Yes, delete these movies", "Cancel, clear command", "\U0001F519"},
@@ -337,7 +337,7 @@ func (b *Bot) handleDeleteMovieSelection(update tgbotapi.Update, command *userDe
 	}
 	b.setDeleteMovieState(command.chatID, command)
 
-	return b.showDeleteMovieSelection(update, command)
+	return b.showDeleteMovieSelection(command)
 }
 
 func isSelectedMovie(selectedMovies []*radarr.Movie, MovieID int64) bool {

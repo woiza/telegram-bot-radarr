@@ -58,7 +58,7 @@ func (b *Bot) processLibraryCommand(update tgbotapi.Update, userID int64, r *rad
 	// no search criteria --> show menu and return
 	if len(criteria) < 1 {
 		b.setLibraryState(userID, &command)
-		b.showLibraryMenu(update, &command)
+		b.showLibraryMenu(&command)
 		return
 	}
 
@@ -89,11 +89,11 @@ func (b *Bot) libraryMenu(update tgbotapi.Update) bool {
 		command.filter = ""
 		b.setActiveCommand(userID, LibraryMenuActive)
 		b.setLibraryState(command.chatID, command)
-		return b.showLibraryMenu(update, command)
+		return b.showLibraryMenu(command)
 	case LibraryMenu:
 		command.filter = ""
 		b.setLibraryState(command.chatID, command)
-		b.showLibraryMenu(update, command)
+		b.showLibraryMenu(command)
 		return false
 	case LibraryCancel:
 		b.clearState(update)
@@ -102,10 +102,10 @@ func (b *Bot) libraryMenu(update tgbotapi.Update) bool {
 	default:
 		command.filter = update.CallbackQuery.Data
 		b.setLibraryState(command.chatID, command)
-		return b.showLibraryMenuFiltered(update, command)
+		return b.showLibraryMenuFiltered(command)
 	}
 }
-func (b *Bot) showLibraryMenu(update tgbotapi.Update, command *userLibrary) bool {
+func (b *Bot) showLibraryMenu(command *userLibrary) bool {
 	keyboard := [][]tgbotapi.InlineKeyboardButton{
 		{
 			tgbotapi.NewInlineKeyboardButtonData("Missing Movies", FilterMissing),
@@ -129,7 +129,7 @@ func (b *Bot) showLibraryMenu(update tgbotapi.Update, command *userLibrary) bool
 	return false
 }
 
-func (b *Bot) showLibraryMenuFiltered(update tgbotapi.Update, command *userLibrary) bool {
+func (b *Bot) showLibraryMenuFiltered(command *userLibrary) bool {
 	movies, err := b.RadarrServer.GetMovie(0)
 	if err != nil {
 		msg := tgbotapi.NewMessage(command.chatID, err.Error())
@@ -308,6 +308,6 @@ func (b *Bot) handleSearchResults(update tgbotapi.Update, searchResults []*radar
 		command.filter = FilterSearchResults
 		b.setLibraryState(command.chatID, command)
 		b.setActiveCommand(command.chatID, LibraryFilteredCommand)
-		b.showLibraryMenuFiltered(update, command)
+		b.showLibraryMenuFiltered(command)
 	}
 }

@@ -12,7 +12,7 @@ import (
 	"golift.io/starr/radarr"
 )
 
-func (b *Bot) sendUpcoming(movies []*radarr.Movie, msg *tgbotapi.MessageConfig, bot *tgbotapi.BotAPI) {
+func (b *Bot) sendUpcoming(movies []*radarr.Movie, msg *tgbotapi.MessageConfig) {
 	sort.SliceStable(movies, func(i, j int) bool {
 		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
 	})

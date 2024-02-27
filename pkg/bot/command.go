@@ -10,7 +10,7 @@ import (
 	"golift.io/starr/radarr"
 )
 
-func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *radarr.Radarr) {
+func (b *Bot) handleCommand(update tgbotapi.Update, r *radarr.Radarr) {
 
 	userID, err := b.getUserID(update)
 	if err != nil {
@@ -70,7 +70,7 @@ func (b *Bot) handleCommand(bot *tgbotapi.BotAPI, update tgbotapi.Update, r *rad
 			b.sendMessage(msg)
 			break
 		}
-		b.sendUpcoming(upcoming, &msg, bot)
+		b.sendUpcoming(upcoming, &msg)
 
 	case "rss", "RSS":
 		command := radarr.CommandRequest{

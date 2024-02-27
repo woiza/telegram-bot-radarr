@@ -186,7 +186,7 @@ func (b *Bot) HandleUpdate(update tgbotapi.Update) {
 	}
 
 	if update.Message.IsCommand() {
-		b.handleCommand(b.Bot, update, b.RadarrServer)
+		b.handleCommand(update, b.RadarrServer)
 	}
 }
 
