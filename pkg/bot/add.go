@@ -177,7 +177,7 @@ func (b *Bot) showAddMovieSearchResults(command *userAddMovie) bool {
 	var responseText string
 
 	for _, movie := range movies {
-		fmt.Fprintf(&text, "[%v](https://www.imdb.com/title/%v) \\- _%v_\n", utils.Escape(movie.Title), movie.TmdbID, movie.Year)
+		fmt.Fprintf(&text, "[%v](https://www.imdb.com/title/%v) \\- _%v_\n", utils.Escape(movie.Title), movie.ImdbID, movie.Year)
 		buttonLabels = append(buttonLabels, fmt.Sprintf("%v - %v", movie.Title, movie.Year))
 		buttonData = append(buttonData, AddMovieTMDBID+strconv.Itoa(int(movie.TmdbID)))
 	}
@@ -215,9 +215,9 @@ func (b *Bot) addMovieDetails(update tgbotapi.Update, command *userAddMovie) boo
 	command.movie = command.searchResults[movieIDStr]
 
 	var text strings.Builder
-	text.WriteString("Is this the correct movie?\n\n")
+	fmt.Fprintf(&text, "Is this the correct movie?\n\n")
+	fmt.Fprintf(&text, "[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(command.movie.Title), command.movie.ImdbID, command.movie.Year)
 
-	text.WriteString(fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(command.movie.Title), command.movie.ImdbID, command.movie.Year))
 	keyboard := b.createKeyboard(
 		[]string{"Yes, add this movie", "\U0001F519"},
 		[]string{AddMovieYes, AddMovieGoBack},
