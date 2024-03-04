@@ -78,7 +78,7 @@ services:
         environment:
             - RBOT_TELEGRAM_BOT_TOKEN=1460...:AAHlBW_mabVg...
             - RBOT_BOT_ALLOWED_USERIDS=12345,98765,45678 # Telegram user ID(s)
-            - RBOT_BOT_MAX_ITEMS=50 # not used yet
+            - RBOT_BOT_MAX_ITEMS=10 # pagination
             - RBOT_RADARR_PROTOCOL=http # http or https
             - RBOT_RADARR_PORT=7878
             - RBOT_RADARR_HOSTNAME=192.168.2.2 # IP or hostname
