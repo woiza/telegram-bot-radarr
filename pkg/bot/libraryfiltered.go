@@ -24,6 +24,10 @@ const (
 	LibraryMovieMonitorSearchNow = "LIBRARY_MOVIE_MONITOR_SEARCHNOW"
 	LibraryFilteredActive        = "LIBRARYFILTERED"
 	//LibraryMenuActive            = "LIBRARYMENU" already defined in librarymenu.go
+	LibraryFirstPage    = "LIBRARY_FIRST_PAGE"
+	LibraryPreviousPage = "LIBRARY_PREV_PAGE"
+	LibraryNextPage     = "LIBRARY_NEXT_PAGE"
+	LibraryLastPage     = "LIBRARY_LAST_PAGE"
 )
 
 const (
@@ -43,16 +47,34 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 		return false
 	}
 	switch update.CallbackQuery.Data {
+	// ignore click on page number
+	case "current_page":
+		return false
+	case LibraryFirstPage:
+		command.page = 0
+		return b.showLibraryMenuFiltered(command)
+	case LibraryPreviousPage:
+		if command.page > 0 {
+			command.page--
+		}
+		return b.showLibraryMenuFiltered(command)
+	case LibraryNextPage:
+		command.page++
+		return b.showLibraryMenuFiltered(command)
+	case LibraryLastPage:
+		totalPages := (len(command.libraryFiltered) + b.Config.MaxItems - 1) / b.Config.MaxItems
+		command.page = totalPages - 1
+		return b.showLibraryMenuFiltered(command)
 	case LibraryMovieGoBack:
 		command.movie = nil
 		b.setActiveCommand(userID, LibraryFilteredActive)
 		b.setLibraryState(command.chatID, command)
-		return b.showLibraryMenuFiltered(update, command)
+		return b.showLibraryMenuFiltered(command)
 	case LibraryFilteredGoBack:
 		command.filter = ""
 		b.setActiveCommand(userID, LibraryMenuActive)
 		b.setLibraryState(command.chatID, command)
-		return b.showLibraryMenu(update, command)
+		return b.showLibraryMenu(command)
 	case LibraryMovieMonitor:
 		return b.handleLibraryMovieMonitor(update, command)
 	case LibraryMovieUnmonitor:
@@ -60,13 +82,13 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 	case LibraryMovieSearch:
 		return b.handleLibraryMovieSearch(update, command)
 	case LibraryMovieDelete:
-		return b.handleLibraryMovieDelete(update, command)
+		return b.handleLibraryMovieDelete(command)
 	case LibraryMovieDeleteYes:
 		return b.handleLibraryMovieDeleteYes(update, command)
 	case LibraryMovieDeleteNo:
 		return b.showLibraryMovieDetail(update, command)
 	case LibraryMovieEdit:
-		return b.handleLibraryMovieEdit(update, command)
+		return b.handleLibraryMovieEdit(command)
 	case LibraryMovieMonitorSearchNow:
 		return b.handleLibraryMovieMonitorSearchNow(update, command)
 	default:
@@ -136,20 +158,23 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 	}
 
 	// Create a message with movie details
-	messageText := fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(movie.Title), movie.ImdbID, movie.Year)
-	messageText += fmt.Sprintf("Monitored: %s\n", monitorIcon)
-	messageText += fmt.Sprintf("Status: %s\n", utils.Escape(movie.Status))
-	messageText += fmt.Sprintf("Last Manual Search: %s\n", utils.Escape(lastSearchString))
-	messageText += fmt.Sprintf("Size: %d GB\n", movie.SizeOnDisk/(1024*1024*1024))
-	messageText += fmt.Sprintf("Quality: %s\n", utils.Escape(quality))
-	messageText += fmt.Sprintf("Video Codec: %s\n", utils.Escape(videoCodec))
-	messageText += fmt.Sprintf("Video Dynamic Range: %s\n", utils.Escape(videoDynamicRange))
-	messageText += fmt.Sprintf("Audio Info: %s\n", utils.Escape(audioInfo))
-	messageText += fmt.Sprintf("Formats: %s\n", utils.Escape(formats))
-	messageText += fmt.Sprintf("Languages: %s\n", utils.Escape(languages))
-	messageText += fmt.Sprintf("Tags: %s\n", utils.Escape(tagsString))
-	messageText += fmt.Sprintf("Quality Profile: %s\n", utils.Escape(findQualityProfileByID(command.qualityProfiles, movie.QualityProfileID).Name))
-	messageText += fmt.Sprintf("Custom Format Score: %s\n", utils.Escape(customFormatScore))
+	var message strings.Builder
+	fmt.Fprintf(&message, "[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(movie.Title), movie.ImdbID, movie.Year)
+	fmt.Fprintf(&message, "Monitored: %s\n", monitorIcon)
+	fmt.Fprintf(&message, "Status: %s\n", utils.Escape(movie.Status))
+	fmt.Fprintf(&message, "Last Manual Search: %s\n", utils.Escape(lastSearchString))
+	fmt.Fprintf(&message, "Size: %d GB\n", movie.SizeOnDisk/(1024*1024*1024))
+	fmt.Fprintf(&message, "Quality: %s\n", utils.Escape(quality))
+	fmt.Fprintf(&message, "Video Codec: %s\n", utils.Escape(videoCodec))
+	fmt.Fprintf(&message, "Video Dynamic Range: %s\n", utils.Escape(videoDynamicRange))
+	fmt.Fprintf(&message, "Audio Info: %s\n", utils.Escape(audioInfo))
+	fmt.Fprintf(&message, "Formats: %s\n", utils.Escape(formats))
+	fmt.Fprintf(&message, "Languages: %s\n", utils.Escape(languages))
+	fmt.Fprintf(&message, "Tags: %s\n", utils.Escape(tagsString))
+	fmt.Fprintf(&message, "Quality Profile: %s\n", utils.Escape(findQualityProfileByID(command.qualityProfiles, movie.QualityProfileID).Name))
+	fmt.Fprintf(&message, "Custom Format Score: %s\n", utils.Escape(customFormatScore))
+
+	messageText := message.String()
 
 	var keyboard tgbotapi.InlineKeyboardMarkup
 	if !movie.Monitored {
@@ -253,7 +278,7 @@ func (b *Bot) handleLibraryMovieMonitorSearchNow(update tgbotapi.Update, command
 	return b.showLibraryMovieDetail(update, command)
 }
 
-func (b *Bot) handleLibraryMovieDelete(update tgbotapi.Update, command *userLibrary) bool {
+func (b *Bot) handleLibraryMovieDelete(command *userLibrary) bool {
 	messageText := fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(command.movie.Title), command.movie.ImdbID, command.movie.Year)
 	keyboard := b.createKeyboard(
 		[]string{"Yes, delete this movie", "\U0001F519"},
@@ -287,10 +312,10 @@ func (b *Bot) handleLibraryMovieDeleteYes(update tgbotapi.Update, command *userL
 	return true
 }
 
-func (b *Bot) handleLibraryMovieEdit(update tgbotapi.Update, command *userLibrary) bool {
+func (b *Bot) handleLibraryMovieEdit(command *userLibrary) bool {
 	b.setLibraryState(command.chatID, command)
 	b.setActiveCommand(command.chatID, LibraryMovieEditCommand)
-	return b.showLibraryMovieEdit(update, command)
+	return b.showLibraryMovieEdit(command)
 }
 
 func findQualityProfileByID(qualityProfiles []*radarr.QualityProfile, qualityProfileID int64) *radarr.QualityProfile {

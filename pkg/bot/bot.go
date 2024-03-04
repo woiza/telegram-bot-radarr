@@ -39,18 +39,18 @@ type userAddMovie struct {
 }
 
 type userDeleteMovie struct {
-	library                map[string]*radarr.Movie
-	searchResultsInLibrary map[string]*radarr.Movie
-	selectedMovies         []*radarr.Movie
-	movie                  *radarr.Movie
-	confirmation           bool
-	chatID                 int64
-	messageID              int
+	library            map[string]*radarr.Movie
+	moviesForSelection []*radarr.Movie // Movies to select from, either whole library or search results
+	selectedMovies     []*radarr.Movie
+	chatID             int64
+	messageID          int
+	page               int
 }
 
 type userLibrary struct {
+	library                []*radarr.Movie
 	libraryFiltered        map[string]*radarr.Movie
-	searchResultsInLibrary map[string]*radarr.Movie
+	searchResultsInLibrary []*radarr.Movie
 	filter                 string
 	qualityProfiles        []*radarr.QualityProfile
 	selectedQualityProfile int64
@@ -61,6 +61,7 @@ type userLibrary struct {
 	lastSearch             time.Time
 	chatID                 int64
 	messageID              int
+	page                   int
 }
 
 type Bot struct {
@@ -169,7 +170,6 @@ func (b *Bot) HandleUpdate(update tgbotapi.Update) {
 			b.clearState(update)
 			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, CommandsClearedMessage)
 			b.sendMessage(msg)
-			break
 		}
 	}
 	if update.Message == nil { // ignore any non-Message Updates
@@ -186,7 +186,7 @@ func (b *Bot) HandleUpdate(update tgbotapi.Update) {
 	}
 
 	if update.Message.IsCommand() {
-		b.handleCommand(b.Bot, update, b.RadarrServer)
+		b.handleCommand(update, b.RadarrServer)
 	}
 }
 

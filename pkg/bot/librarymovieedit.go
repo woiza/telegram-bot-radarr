@@ -32,9 +32,9 @@ func (b *Bot) libraryMovieEdit(update tgbotapi.Update) bool {
 	}
 	switch update.CallbackQuery.Data {
 	case LibraryMovieEditToggleMonitor:
-		return b.handleLibraryMovieEditToggleMonitor(update, command)
+		return b.handleLibraryMovieEditToggleMonitor(command)
 	case LibraryMovieEditToggleQualityProfile:
-		return b.handleLibraryMovieEditToggleQualityProfile(update, command)
+		return b.handleLibraryMovieEditToggleQualityProfile(command)
 	case LibraryMovieEditSubmitChanges:
 		return b.handleLibraryMovieEditSubmitChanges(update, command)
 	case LibraryMovieEditGoBack:
@@ -50,11 +50,11 @@ func (b *Bot) libraryMovieEdit(update tgbotapi.Update) bool {
 		if strings.HasPrefix(update.CallbackQuery.Data, "TAG_") {
 			return b.handleLibraryMovieEditSelectTag(update, command)
 		}
-		return b.showLibraryMovieEdit(update, command)
+		return b.showLibraryMovieEdit(command)
 	}
 }
 
-func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary) bool {
+func (b *Bot) showLibraryMovieEdit(command *userLibrary) bool {
 	movie := command.movie
 
 	var monitorIcon string
@@ -68,9 +68,7 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 
 	messageText := fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n\n", utils.Escape(movie.Title), movie.ImdbID, movie.Year)
 
-	var keyboard tgbotapi.InlineKeyboardMarkup
-
-	keyboard = b.createKeyboard(
+	keyboard := b.createKeyboard(
 		[]string{"Monitored: " + monitorIcon, qualityProfile},
 		[]string{LibraryMovieEditToggleMonitor, LibraryMovieEditToggleQualityProfile},
 	)
@@ -95,8 +93,7 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, tagsKeyboard...)
 
-	var keyboardSubmitCancelGoBack tgbotapi.InlineKeyboardMarkup
-	keyboardSubmitCancelGoBack = b.createKeyboard(
+	keyboardSubmitCancelGoBack := b.createKeyboard(
 		[]string{"Submit - Confirm Changes", "Cancel - clear command", "\U0001F519"},
 		[]string{LibraryMovieEditSubmitChanges, LibraryMovieEditCancel, LibraryMovieEditGoBack},
 	)
@@ -118,18 +115,18 @@ func (b *Bot) showLibraryMovieEdit(update tgbotapi.Update, command *userLibrary)
 
 }
 
-func (b *Bot) handleLibraryMovieEditToggleMonitor(update tgbotapi.Update, command *userLibrary) bool {
+func (b *Bot) handleLibraryMovieEditToggleMonitor(command *userLibrary) bool {
 	command.selectedMonitoring = !command.selectedMonitoring
 	b.setLibraryState(command.chatID, command)
-	return b.showLibraryMovieEdit(update, command)
+	return b.showLibraryMovieEdit(command)
 }
 
-func (b *Bot) handleLibraryMovieEditToggleQualityProfile(update tgbotapi.Update, command *userLibrary) bool {
+func (b *Bot) handleLibraryMovieEditToggleQualityProfile(command *userLibrary) bool {
 	currentProfileIndex := getQualityProfileIndexByID(command.qualityProfiles, command.selectedQualityProfile)
 	nextProfileIndex := (currentProfileIndex + 1) % len(command.qualityProfiles)
 	command.selectedQualityProfile = command.qualityProfiles[nextProfileIndex].ID
 	b.setLibraryState(command.chatID, command)
-	return b.showLibraryMovieEdit(update, command)
+	return b.showLibraryMovieEdit(command)
 }
 
 func (b *Bot) handleLibraryMovieEditSelectTag(update tgbotapi.Update, command *userLibrary) bool {
@@ -152,17 +149,35 @@ func (b *Bot) handleLibraryMovieEditSelectTag(update tgbotapi.Update, command *u
 	}
 
 	b.setLibraryState(command.chatID, command)
-	return b.showLibraryMovieEdit(update, command)
+	return b.showLibraryMovieEdit(command)
 }
 
 func (b *Bot) handleLibraryMovieEditSubmitChanges(update tgbotapi.Update, command *userLibrary) bool {
-	bulkEdit := radarr.BulkEdit{
-		MovieIDs:         []int64{command.movie.ID},
-		Monitored:        &command.selectedMonitoring,
-		QualityProfileID: &command.selectedQualityProfile,
-		Tags:             command.selectedTags,
-		ApplyTags:        starr.TagsReplace.Ptr(),
+	var bulkEdit radarr.BulkEdit
+
+	// If no tags are selected, remove all tags
+	if len(command.selectedTags) == 0 {
+		var tagIDs []int
+		for _, tag := range command.allTags {
+			tagIDs = append(tagIDs, tag.ID)
+		}
+		bulkEdit = radarr.BulkEdit{
+			MovieIDs:         []int64{command.movie.ID},
+			Monitored:        &command.selectedMonitoring,
+			QualityProfileID: &command.selectedQualityProfile,
+			Tags:             tagIDs,
+			ApplyTags:        starr.TagsRemove.Ptr(),
+		}
+	} else {
+		bulkEdit = radarr.BulkEdit{
+			MovieIDs:         []int64{command.movie.ID},
+			Monitored:        &command.selectedMonitoring,
+			QualityProfileID: &command.selectedQualityProfile,
+			Tags:             command.selectedTags,
+			ApplyTags:        starr.TagsReplace.Ptr(),
+		}
 	}
+
 	_, err := b.RadarrServer.EditMovies(&bulkEdit)
 	if err != nil {
 		msg := tgbotapi.NewMessage(command.chatID, err.Error())

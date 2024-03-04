@@ -13,11 +13,15 @@ import (
 )
 
 const (
-	DeleteMovieConfirm = "DELETEMOVIE_SUBMIT"
-	DeleteMovieCancel  = "DELETEMOVIE_CANCEL"
-	DeleteMovieGoBack  = "DELETEMOVIE_GOBACK"
-	DeleteMovieYes     = "DELETEMOVIE_YES"
-	DeleteMovieTMDBID  = "DELETEMOVIE_TMDBID_"
+	DeleteMovieConfirm      = "DELETE_MOVIE_SUBMIT"
+	DeleteMovieCancel       = "DELETE_MOVIE_CANCEL"
+	DeleteMovieGoBack       = "DELETE_MOVIE_GOBACK"
+	DeleteMovieYes          = "DELETE_MOVIE_YES"
+	DeleteMovieTMDBID       = "DELETE_MOVIE_TMDBID_"
+	DeleteMovieFirstPage    = "DELETE_MOVIE_FIRST_PAGE"
+	DeleteMoviePreviousPage = "DELETE_MOVIE_PREV_PAGE"
+	DeleteMovieNextPage     = "DELETE_MOVIE_NEXT_PAGE"
+	DeleteMovieLastPage     = "DELETE_MOVIE_LAST_PAGE"
 )
 
 func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *radarr.Radarr) {
@@ -37,6 +41,12 @@ func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *rada
 		tmdbID := strconv.Itoa(int(movie.TmdbID))
 		command.library[tmdbID] = movie
 	}
+
+	// Sort the movies alphabetically based on their titles
+	sort.SliceStable(movies, func(i, j int) bool {
+		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
+	})
+	command.moviesForSelection = movies
 	command.chatID = message.Chat.ID
 	command.messageID = message.MessageID
 	b.setDeleteMovieState(userID, &command)
@@ -44,7 +54,7 @@ func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *rada
 	criteria := update.Message.CommandArguments()
 	// no search criteria --> show complete library and return
 	if len(criteria) < 1 {
-		b.showDeleteMovieSelection(update, &command)
+		b.showDeleteMovieSelection(&command)
 		return
 	}
 
@@ -56,8 +66,7 @@ func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *rada
 	}
 
 	b.setDeleteMovieState(userID, &command)
-	b.handleDeleteSearchResults(update, searchResults, &command)
-	return
+	b.handleDeleteSearchResults(searchResults, &command)
 
 }
 func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
@@ -73,12 +82,30 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 	}
 
 	switch update.CallbackQuery.Data {
+	// ignore click on page number
+	case "current_page":
+		return false
+	case DeleteMovieFirstPage:
+		command.page = 0
+		return b.showDeleteMovieSelection(command)
+	case DeleteMoviePreviousPage:
+		if command.page > 0 {
+			command.page--
+		}
+		return b.showDeleteMovieSelection(command)
+	case DeleteMovieNextPage:
+		command.page++
+		return b.showDeleteMovieSelection(command)
+	case DeleteMovieLastPage:
+		totalPages := (len(command.moviesForSelection) + b.Config.MaxItems - 1) / b.Config.MaxItems
+		command.page = totalPages - 1
+		return b.showDeleteMovieSelection(command)
 	case DeleteMovieConfirm:
-		return b.processMovieSelectionForDelete(update, command)
+		return b.processMovieSelectionForDelete(command)
 	case DeleteMovieYes:
 		return b.handleDeleteMovieYes(update, command)
 	case DeleteMovieGoBack:
-		return b.showDeleteMovieSelection(update, command)
+		return b.showDeleteMovieSelection(command)
 	case DeleteMovieCancel:
 		b.clearState(update)
 		b.sendMessageWithEdit(command, CommandsCleared)
@@ -92,26 +119,25 @@ func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
 	}
 }
 
-func (b *Bot) showDeleteMovieSelection(update tgbotapi.Update, command *userDeleteMovie) bool {
+func (b *Bot) showDeleteMovieSelection(command *userDeleteMovie) bool {
 	var keyboard tgbotapi.InlineKeyboardMarkup
 
-	// Convert the map values (movies) to a slice
-	var movies []*radarr.Movie
-	moviesLibrary := command.library
-	if len(command.searchResultsInLibrary) > 0 {
-		moviesLibrary = command.searchResultsInLibrary
-	}
-	for _, movie := range moviesLibrary {
-		movies = append(movies, movie)
-	}
+	movies := command.moviesForSelection
 
-	// Sort the movies alphabetically based on their titles
-	sort.SliceStable(movies, func(i, j int) bool {
-		return utils.IgnoreArticles(strings.ToLower(movies[i].Title)) < utils.IgnoreArticles(strings.ToLower(movies[j].Title))
-	})
+	// Pagination parameters
+	page := command.page
+	pageSize := b.Config.MaxItems
+	totalPages := (len(movies) + pageSize - 1) / pageSize
+
+	// Calculate start and end index for the current page
+	startIndex := page * pageSize
+	endIndex := (page + 1) * pageSize
+	if endIndex > len(movies) {
+		endIndex = len(movies)
+	}
 
 	var movieKeyboard [][]tgbotapi.InlineKeyboardButton
-	for _, movie := range movies {
+	for _, movie := range movies[startIndex:endIndex] {
 		// Check if the movie is selected
 		isSelected := isSelectedMovie(command.selectedMovies, movie.ID)
 
@@ -128,6 +154,26 @@ func (b *Bot) showDeleteMovieSelection(update tgbotapi.Update, command *userDele
 	}
 
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, movieKeyboard...)
+
+	// Create pagination buttons
+	if len(movies) > pageSize {
+		paginationButtons := []tgbotapi.InlineKeyboardButton{}
+		if page > 0 {
+			paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData("◀️", DeleteMoviePreviousPage))
+		}
+		paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%d/%d", page+1, totalPages), "current_page"))
+		if page+1 < totalPages {
+			paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData("▶️", DeleteMovieNextPage))
+		}
+		if page != 0 {
+			paginationButtons = append([]tgbotapi.InlineKeyboardButton{tgbotapi.NewInlineKeyboardButtonData("⏮️", DeleteMovieFirstPage)}, paginationButtons...)
+		}
+		if page+1 != totalPages {
+			paginationButtons = append(paginationButtons, tgbotapi.NewInlineKeyboardButtonData("⏭️", DeleteMovieLastPage))
+		}
+
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, paginationButtons)
+	}
 
 	var keyboardConfirmCancel tgbotapi.InlineKeyboardMarkup
 	if len(command.selectedMovies) > 0 {
@@ -148,7 +194,7 @@ func (b *Bot) showDeleteMovieSelection(update tgbotapi.Update, command *userDele
 	editMsg := tgbotapi.NewEditMessageTextAndMarkup(
 		command.chatID,
 		command.messageID,
-		"Select the movie\\(s\\) you want to delete",
+		fmt.Sprintf(utils.Escape("Select the movie(s) you want to delete - page %d/%d"), page+1, totalPages),
 		keyboard,
 	)
 	editMsg.ParseMode = "MarkdownV2"
@@ -158,7 +204,7 @@ func (b *Bot) showDeleteMovieSelection(update tgbotapi.Update, command *userDele
 	return false
 }
 
-func (b *Bot) handleDeleteSearchResults(update tgbotapi.Update, searchResults []*radarr.Movie, command *userDeleteMovie) {
+func (b *Bot) handleDeleteSearchResults(searchResults []*radarr.Movie, command *userDeleteMovie) {
 	if len(searchResults) == 0 {
 		b.sendMessageWithEdit(command, "No movies found matching your search criteria")
 		return
@@ -180,23 +226,18 @@ func (b *Bot) handleDeleteSearchResults(update tgbotapi.Update, searchResults []
 		return
 	}
 
-	command.searchResultsInLibrary = make(map[string]*radarr.Movie, len(moviesInLibrary))
-	for _, movie := range moviesInLibrary {
-		tmdbID := strconv.Itoa(int(movie.TmdbID))
-		command.searchResultsInLibrary[tmdbID] = movie
-	}
-
 	if len(moviesInLibrary) == 1 {
 		command.selectedMovies = make([]*radarr.Movie, len(moviesInLibrary))
 		command.selectedMovies[0] = moviesInLibrary[0]
 		b.setDeleteMovieState(command.chatID, command)
-		b.processMovieSelectionForDelete(update, command)
+		b.processMovieSelectionForDelete(command)
 	} else {
+		command.moviesForSelection = moviesInLibrary
 		b.setDeleteMovieState(command.chatID, command)
-		b.showDeleteMovieSelection(update, command)
+		b.showDeleteMovieSelection(command)
 	}
 }
-func (b *Bot) processMovieSelectionForDelete(update tgbotapi.Update, command *userDeleteMovie) bool {
+func (b *Bot) processMovieSelectionForDelete(command *userDeleteMovie) bool {
 	var keyboard tgbotapi.InlineKeyboardMarkup
 	var messageText strings.Builder
 	var disablePreview bool
@@ -206,21 +247,26 @@ func (b *Bot) processMovieSelectionForDelete(update tgbotapi.Update, command *us
 			[]string{"Yes, delete this movie", "Cancel, clear command", "\U0001F519"},
 			[]string{DeleteMovieYes, DeleteMovieCancel, DeleteMovieGoBack},
 		)
-		messageText.WriteString("Do you want to delete the following movie including all files?\n\n")
-		messageText.WriteString(fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n",
-			utils.Escape(command.selectedMovies[0].Title), command.selectedMovies[0].ImdbID, command.selectedMovies[0].Year))
+		fmt.Fprintf(&messageText, "Do you want to delete the following movie including all files?\n\n")
+		fmt.Fprintf(&messageText, "[%v](https://www.imdb.com/title/%v) \\- _%v_\n",
+			utils.Escape(command.selectedMovies[0].Title), command.selectedMovies[0].ImdbID, command.selectedMovies[0].Year)
 		disablePreview = false
 	case 0:
-		return b.showDeleteMovieSelection(update, command)
+		return b.showDeleteMovieSelection(command)
 	default:
 		keyboard = b.createKeyboard(
 			[]string{"Yes, delete these movies", "Cancel, clear command", "\U0001F519"},
 			[]string{DeleteMovieYes, DeleteMovieCancel, DeleteMovieGoBack},
 		)
-		messageText.WriteString("Do you want to delete the following movies including all files?\n\n")
+		// Sort the movies alphabetically based on their titles
+		sort.SliceStable(command.selectedMovies, func(i, j int) bool {
+			return utils.IgnoreArticles(strings.ToLower(command.selectedMovies[i].Title)) < utils.IgnoreArticles(strings.ToLower(command.selectedMovies[j].Title))
+		})
+
+		fmt.Fprintf(&messageText, "Do you want to delete the following movies including all files?\n\n")
 		for _, movie := range command.selectedMovies {
-			messageText.WriteString(fmt.Sprintf("[%v](https://www.imdb.com/title/%v) \\- _%v_\n",
-				utils.Escape(movie.Title), movie.ImdbID, movie.Year))
+			fmt.Fprintf(&messageText, "[%v](https://www.imdb.com/title/%v) \\- _%v_\n",
+				utils.Escape(movie.Title), movie.ImdbID, movie.Year)
 		}
 		disablePreview = true
 	}
@@ -288,7 +334,7 @@ func (b *Bot) handleDeleteMovieSelection(update tgbotapi.Update, command *userDe
 	}
 	b.setDeleteMovieState(command.chatID, command)
 
-	return b.showDeleteMovieSelection(update, command)
+	return b.showDeleteMovieSelection(command)
 }
 
 func isSelectedMovie(selectedMovies []*radarr.Movie, MovieID int64) bool {
