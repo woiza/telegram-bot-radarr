@@ -140,6 +140,7 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 		return false
 	}
 
+	size := int64(0)
 	quality := ""
 	videoCodec := ""
 	videoDynamicRange := ""
@@ -148,6 +149,7 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 	languages := ""
 	formats := ""
 	if len(movieFiles) == 1 {
+		size = movieFiles[0].Size
 		quality = movieFiles[0].Quality.Quality.Name
 		videoCodec = movieFiles[0].MediaInfo.VideoCodec
 		videoDynamicRange = movieFiles[0].MediaInfo.VideoDynamicRangeType
@@ -163,7 +165,7 @@ func (b *Bot) showLibraryMovieDetail(update tgbotapi.Update, command *userLibrar
 	fmt.Fprintf(&message, "Monitored: %s\n", monitorIcon)
 	fmt.Fprintf(&message, "Status: %s\n", utils.Escape(movie.Status))
 	fmt.Fprintf(&message, "Last Manual Search: %s\n", utils.Escape(lastSearchString))
-	fmt.Fprintf(&message, "Size: %d GB\n", movie.SizeOnDisk/(1024*1024*1024))
+	fmt.Fprintf(&message, "Size: %d GB\n", size/(1024*1024*1024))
 	fmt.Fprintf(&message, "Quality: %s\n", utils.Escape(quality))
 	fmt.Fprintf(&message, "Video Codec: %s\n", utils.Escape(videoCodec))
 	fmt.Fprintf(&message, "Video Dynamic Range: %s\n", utils.Escape(videoDynamicRange))
