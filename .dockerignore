@@ -1,0 +1,10 @@
+/test
+/.github
+.github
+.vscode
+.git
+*.md
+Dockerfile
+go.work
+.DS_Store
+.gitignore
