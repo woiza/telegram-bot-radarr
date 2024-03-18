@@ -18,7 +18,7 @@ func (b *Bot) handleCommand(update tgbotapi.Update, r *radarr.Radarr) {
 		return
 	}
 
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+	msg := tgbotapi.NewMessage(update.Message.From.ID, "")
 
 	switch update.Message.Command() {
 
