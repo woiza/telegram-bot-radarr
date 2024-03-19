@@ -20,13 +20,13 @@ const (
 )
 
 func (b *Bot) libraryMovieEdit(update tgbotapi.Update) bool {
-	userID, err := b.getUserID(update)
+	chatID, err := b.getChatID(update)
 	if err != nil {
 		fmt.Printf("Cannot manage library: %v", err)
 		return false
 	}
 
-	command, exists := b.getLibraryState(userID)
+	command, exists := b.getLibraryState(chatID)
 	if !exists {
 		return false
 	}
@@ -38,7 +38,7 @@ func (b *Bot) libraryMovieEdit(update tgbotapi.Update) bool {
 	case LibraryMovieEditSubmitChanges:
 		return b.handleLibraryMovieEditSubmitChanges(update, command)
 	case LibraryMovieEditGoBack:
-		b.setActiveCommand(userID, LibraryFilteredActive)
+		b.setActiveCommand(chatID, LibraryFilteredActive)
 		b.setLibraryState(command.chatID, command)
 		return b.showLibraryMovieDetail(update, command)
 	case LibraryMovieEditCancel:

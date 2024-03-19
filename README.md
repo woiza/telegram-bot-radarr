@@ -77,7 +77,7 @@ services:
         restart: always
         environment:
             - RBOT_TELEGRAM_BOT_TOKEN=1460...:AAHlBW_mabVg...
-            - RBOT_BOT_ALLOWED_USERIDS=12345,98765,45678 # Telegram user ID(s)
+            - RBOT_BOT_ALLOWED_USERIDS=123,987,-567 # Telegram user ID(s), Group IDs are negative
             - RBOT_BOT_MAX_ITEMS=10 # pagination
             - RBOT_RADARR_PROTOCOL=http # http or https
             - RBOT_RADARR_PORT=7878

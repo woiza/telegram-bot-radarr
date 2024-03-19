@@ -12,27 +12,27 @@ import (
 
 func (b *Bot) handleCommand(update tgbotapi.Update, r *radarr.Radarr) {
 
-	userID, err := b.getUserID(update)
+	chatID, err := b.getChatID(update)
 	if err != nil {
 		fmt.Printf("Cannot handle command: %v", err)
 		return
 	}
 
-	msg := tgbotapi.NewMessage(update.Message.From.ID, "")
+	msg := tgbotapi.NewMessage(chatID, "")
 
 	switch update.Message.Command() {
 
 	case "q", "query", "add", "Q", "Query", "Add":
-		b.setActiveCommand(userID, AddMovieCommand)
-		b.processAddCommand(update, userID, r)
+		b.setActiveCommand(chatID, AddMovieCommand)
+		b.processAddCommand(update, chatID, r)
 
 	case "movies", "library", "l":
-		b.setActiveCommand(userID, LibraryMenuCommand)
-		b.processLibraryCommand(update, userID, r)
+		b.setActiveCommand(chatID, LibraryMenuCommand)
+		b.processLibraryCommand(update, chatID, r)
 
 	case "delete", "remove", "Delete", "Remove", "d":
-		b.setActiveCommand(userID, DeleteMovieCommand)
-		b.processDeleteCommand(update, userID, r)
+		b.setActiveCommand(chatID, DeleteMovieCommand)
+		b.processDeleteCommand(update, chatID, r)
 
 	case "clear", "cancel", "stop":
 		b.clearState(update)
@@ -149,12 +149,11 @@ func (b *Bot) handleCommand(update tgbotapi.Update, r *radarr.Radarr) {
 			b.sendMessage(msg)
 			break
 		}
-		message := prettyPrint(status)
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, message)
+		msg.Text = prettyPrint(status)
 		b.sendMessage(msg)
 
 	case "getid", "id":
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("Your user ID: %d", userID))
+		msg.Text = fmt.Sprintf("Your user ID: %d", chatID)
 		b.sendMessage(msg)
 
 	default:

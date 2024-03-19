@@ -24,13 +24,13 @@ const (
 	DeleteMovieLastPage     = "DELETE_MOVIE_LAST_PAGE"
 )
 
-func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *radarr.Radarr) {
-	msg := tgbotapi.NewMessage(userID, "Handling delete command... please wait")
+func (b *Bot) processDeleteCommand(update tgbotapi.Update, chatID int64, r *radarr.Radarr) {
+	msg := tgbotapi.NewMessage(chatID, "Handling delete command... please wait")
 	message, _ := b.sendMessage(msg)
 
 	movies, err := r.GetMovie(0)
 	if err != nil {
-		msg := tgbotapi.NewMessage(userID, err.Error())
+		msg := tgbotapi.NewMessage(chatID, err.Error())
 		b.sendMessage(msg)
 		return
 	}
@@ -49,7 +49,7 @@ func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *rada
 	command.moviesForSelection = movies
 	command.chatID = message.Chat.ID
 	command.messageID = message.MessageID
-	b.setDeleteMovieState(userID, &command)
+	b.setDeleteMovieState(chatID, &command)
 
 	criteria := update.Message.CommandArguments()
 	// no search criteria --> show complete library and return
@@ -60,23 +60,23 @@ func (b *Bot) processDeleteCommand(update tgbotapi.Update, userID int64, r *rada
 
 	searchResults, err := r.Lookup(criteria)
 	if err != nil {
-		msg := tgbotapi.NewMessage(userID, err.Error())
+		msg := tgbotapi.NewMessage(chatID, err.Error())
 		b.sendMessage(msg)
 		return
 	}
 
-	b.setDeleteMovieState(userID, &command)
+	b.setDeleteMovieState(chatID, &command)
 	b.handleDeleteSearchResults(searchResults, &command)
 
 }
 func (b *Bot) deleteMovie(update tgbotapi.Update) bool {
-	userID, err := b.getUserID(update)
+	chatID, err := b.getChatID(update)
 	if err != nil {
 		fmt.Printf("Cannot delete movie: %v", err)
 		return false
 	}
 
-	command, exists := b.getDeleteMovieState(userID)
+	command, exists := b.getDeleteMovieState(chatID)
 	if !exists {
 		return false
 	}

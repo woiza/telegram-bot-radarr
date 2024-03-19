@@ -36,13 +36,13 @@ const (
 )
 
 func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
-	userID, err := b.getUserID(update)
+	chatID, err := b.getChatID(update)
 	if err != nil {
 		fmt.Printf("Cannot manage library: %v", err)
 		return false
 	}
 
-	command, exists := b.getLibraryState(userID)
+	command, exists := b.getLibraryState(chatID)
 	if !exists {
 		return false
 	}
@@ -67,12 +67,12 @@ func (b *Bot) libraryFiltered(update tgbotapi.Update) bool {
 		return b.showLibraryMenuFiltered(command)
 	case LibraryMovieGoBack:
 		command.movie = nil
-		b.setActiveCommand(userID, LibraryFilteredActive)
+		b.setActiveCommand(chatID, LibraryFilteredActive)
 		b.setLibraryState(command.chatID, command)
 		return b.showLibraryMenuFiltered(command)
 	case LibraryFilteredGoBack:
 		command.filter = ""
-		b.setActiveCommand(userID, LibraryMenuActive)
+		b.setActiveCommand(chatID, LibraryMenuActive)
 		b.setLibraryState(command.chatID, command)
 		return b.showLibraryMenu(command)
 	case LibraryMovieMonitor:
