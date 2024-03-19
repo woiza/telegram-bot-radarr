@@ -29,8 +29,8 @@ const (
 	AddMovieColMon           = "ADDMOVIE_COLMON"
 )
 
-func (b *Bot) processAddCommand(update tgbotapi.Update, userID int64, r *radarr.Radarr) {
-	msg := tgbotapi.NewMessage(userID, "Handling add movie command... please wait")
+func (b *Bot) processAddCommand(update tgbotapi.Update, chatID int64, r *radarr.Radarr) {
+	msg := tgbotapi.NewMessage(chatID, "Handling add movie command... please wait")
 	message, _ := b.sendMessage(msg)
 	command := userAddMovie{
 		chatID:    message.Chat.ID,
@@ -44,7 +44,7 @@ func (b *Bot) processAddCommand(update tgbotapi.Update, userID int64, r *radarr.
 	}
 	searchResults, err := r.Lookup(criteria)
 	if err != nil {
-		msg := tgbotapi.NewMessage(userID, err.Error())
+		msg := tgbotapi.NewMessage(chatID, err.Error())
 		b.sendMessage(msg)
 		return
 	}
@@ -70,18 +70,18 @@ func (b *Bot) processAddCommand(update tgbotapi.Update, userID int64, r *radarr.
 }
 
 func (b *Bot) addMovie(update tgbotapi.Update) bool {
-	userID, err := b.getUserID(update)
+	chatID, err := b.getChatID(update)
 	if err != nil {
 		fmt.Printf("Cannot add movie: %v", err)
 		return false
 	}
-	command, exists := b.getAddMovieState(userID)
+	command, exists := b.getAddMovieState(chatID)
 	if !exists {
 		return false
 	}
 	switch update.CallbackQuery.Data {
 	case AddMovieYes:
-		b.setActiveCommand(userID, AddMovieCommand)
+		b.setActiveCommand(chatID, AddMovieCommand)
 		return b.handleAddMovieYes(update, command)
 	case AddMovieGoBack:
 		b.setAddMovieState(command.chatID, command)

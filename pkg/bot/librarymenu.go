@@ -81,7 +81,7 @@ func (b *Bot) processLibraryCommand(update tgbotapi.Update, userID int64, r *rad
 }
 
 func (b *Bot) libraryMenu(update tgbotapi.Update) bool {
-	userID, err := b.getUserID(update)
+	userID, err := b.getChatID(update)
 	if err != nil {
 		fmt.Printf("Cannot manage library: %v", err)
 		return false

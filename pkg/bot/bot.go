@@ -130,19 +130,19 @@ func (b *Bot) HandleUpdates(updates <-chan tgbotapi.Update) {
 }
 
 func (b *Bot) HandleUpdate(update tgbotapi.Update) {
-	userID, err := b.getUserID(update)
+	chatID, err := b.getChatID(update)
 	if err != nil {
 		fmt.Printf("Cannot handle update: %v", err)
 		return
 	}
 
-	if update.Message != nil && !b.Config.AllowedUserIDs[userID] {
+	if update.Message != nil && !b.Config.AllowedChatIDs[chatID] {
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Access denied. You are not authorized.")
 		b.sendMessage(msg)
 		return
 	}
 
-	activeCommand, _ := b.getActiveCommand(userID)
+	activeCommand, _ := b.getActiveCommand(chatID)
 
 	if update.CallbackQuery != nil {
 		switch activeCommand {
@@ -191,7 +191,7 @@ func (b *Bot) HandleUpdate(update tgbotapi.Update) {
 }
 
 func (b *Bot) clearState(update tgbotapi.Update) {
-	userID, err := b.getUserID(update)
+	chatID, err := b.getChatID(update)
 	if err != nil {
 		fmt.Printf("Cannot clear state: %v", err)
 		return
@@ -201,88 +201,88 @@ func (b *Bot) clearState(update tgbotapi.Update) {
 	b.muActiveCommand.Lock()
 	defer b.muActiveCommand.Unlock()
 
-	delete(b.ActiveCommand, userID)
+	delete(b.ActiveCommand, chatID)
 
 	b.muAddMovieStates.Lock()
 	defer b.muAddMovieStates.Unlock()
 
-	delete(b.AddMovieStates, userID)
+	delete(b.AddMovieStates, chatID)
 
 	b.muDeleteMovieStates.Lock()
 	defer b.muDeleteMovieStates.Unlock()
 
-	delete(b.DeleteMovieStates, userID)
+	delete(b.DeleteMovieStates, chatID)
 
 	b.muLibraryStates.Lock()
 	defer b.muLibraryStates.Unlock()
 
-	delete(b.LibraryStates, userID)
+	delete(b.LibraryStates, chatID)
 }
 
-func (b *Bot) getUserID(update tgbotapi.Update) (int64, error) {
-	var userID int64
+func (b *Bot) getChatID(update tgbotapi.Update) (int64, error) {
+	var chatID int64
 	if update.Message != nil {
-		userID = update.Message.From.ID
+		chatID = update.Message.Chat.ID
 	}
 	if update.CallbackQuery != nil {
-		userID = update.CallbackQuery.From.ID
+		chatID = update.CallbackQuery.Message.Chat.ID
 	}
-	if userID == 0 {
+	if chatID == 0 {
 		return 0, fmt.Errorf("no user ID found in Message and CallbackQuery")
 	}
-	return userID, nil
+	return chatID, nil
 }
 
-func (b *Bot) getActiveCommand(userID int64) (string, bool) {
+func (b *Bot) getActiveCommand(chatID int64) (string, bool) {
 	b.muActiveCommand.Lock()
 	defer b.muActiveCommand.Unlock()
-	cmd, exists := b.ActiveCommand[userID]
+	cmd, exists := b.ActiveCommand[chatID]
 	return cmd, exists
 }
 
-func (b *Bot) setActiveCommand(userID int64, command string) {
+func (b *Bot) setActiveCommand(chatID int64, command string) {
 	b.muActiveCommand.Lock()
 	defer b.muActiveCommand.Unlock()
-	b.ActiveCommand[userID] = command
+	b.ActiveCommand[chatID] = command
 }
 
-func (b *Bot) getAddMovieState(userID int64) (*userAddMovie, bool) {
+func (b *Bot) getAddMovieState(chatID int64) (*userAddMovie, bool) {
 	b.muAddMovieStates.Lock()
 	defer b.muAddMovieStates.Unlock()
-	state, exists := b.AddMovieStates[userID]
+	state, exists := b.AddMovieStates[chatID]
 	return state, exists
 }
 
-func (b *Bot) setAddMovieState(userID int64, state *userAddMovie) {
+func (b *Bot) setAddMovieState(chatID int64, state *userAddMovie) {
 	b.muAddMovieStates.Lock()
 	defer b.muAddMovieStates.Unlock()
-	b.AddMovieStates[userID] = state
+	b.AddMovieStates[chatID] = state
 }
 
-func (b *Bot) getDeleteMovieState(userID int64) (*userDeleteMovie, bool) {
+func (b *Bot) getDeleteMovieState(chatID int64) (*userDeleteMovie, bool) {
 	b.muDeleteMovieStates.Lock()
 	defer b.muDeleteMovieStates.Unlock()
-	state, exists := b.DeleteMovieStates[userID]
+	state, exists := b.DeleteMovieStates[chatID]
 	return state, exists
 }
 
-func (b *Bot) setDeleteMovieState(userID int64, state *userDeleteMovie) {
+func (b *Bot) setDeleteMovieState(chatID int64, state *userDeleteMovie) {
 	b.muDeleteMovieStates.Lock()
 	defer b.muDeleteMovieStates.Unlock()
-	b.DeleteMovieStates[userID] = state
+	b.DeleteMovieStates[chatID] = state
 }
 
-func (b *Bot) getLibraryState(userID int64) (*userLibrary, bool) {
+func (b *Bot) getLibraryState(chatID int64) (*userLibrary, bool) {
 	b.muLibraryStates.Lock()
 	defer b.muLibraryStates.Unlock()
-	state, exists := b.LibraryStates[userID]
+	state, exists := b.LibraryStates[chatID]
 	return state, exists
 }
 
-func (b *Bot) setLibraryState(userID int64, state *userLibrary) {
+func (b *Bot) setLibraryState(chatID int64, state *userLibrary) {
 	b.muLibraryStates.Lock()
 	defer b.muLibraryStates.Unlock()
-	b.LibraryStates[userID] = state
+	b.LibraryStates[chatID] = state
 }
 
 func (b *Bot) sendMessage(msg tgbotapi.Chattable) (tgbotapi.Message, error) {

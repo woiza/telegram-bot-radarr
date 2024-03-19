@@ -11,7 +11,7 @@ import (
 // BotConfig ...
 type Config struct {
 	TelegramBotToken string
-	AllowedUserIDs   map[int64]bool
+	AllowedChatIDs   map[int64]bool
 	MaxItems         int
 	RadarrProtocol   string
 	RadarrHostname   string
@@ -72,7 +72,7 @@ func LoadConfig() (Config, error) {
 		}
 		parsedUserIDs[parsedID] = true
 	}
-	config.AllowedUserIDs = parsedUserIDs
+	config.AllowedChatIDs = parsedUserIDs
 
 	// Parsing RBOT_RADARR_PORT as a number
 	port, err := strconv.Atoi(radarrPort)
