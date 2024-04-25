@@ -17,6 +17,7 @@ type Config struct {
 	RadarrHostname   string
 	RadarrPort       int
 	RadarrAPIKey     string
+	RadarrBaseUrl    string
 }
 
 func LoadConfig() (Config, error) {
@@ -29,6 +30,7 @@ func LoadConfig() (Config, error) {
 	config.RadarrHostname = os.Getenv("RBOT_RADARR_HOSTNAME")
 	radarrPort := os.Getenv("RBOT_RADARR_PORT")
 	config.RadarrAPIKey = os.Getenv("RBOT_RADARR_API_KEY")
+	config.RadarrBaseUrl = os.Getenv("RBOT_RADARR_BASE_URL")
 
 	// Validate required fields
 	if config.TelegramBotToken == "" {
