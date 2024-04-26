@@ -82,6 +82,7 @@ services:
             - RBOT_RADARR_PROTOCOL=http # http or https
             - RBOT_RADARR_PORT=7878
             - RBOT_RADARR_HOSTNAME=192.168.2.2 # IP or hostname
+            - RBOT_RADARR_BASE_URL=/radarr # optional depending on radarr configuration
             - RBOT_RADARR_API_KEY=1010d7...
 ```
 ### Commands for Botfather's /setcommands

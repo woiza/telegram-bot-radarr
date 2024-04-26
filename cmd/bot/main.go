@@ -30,7 +30,7 @@ func main() {
 
 	fmt.Printf("Authorized on account %v\n", b.Self.UserName)
 
-	radarrConfig := starr.New(config.RadarrAPIKey, fmt.Sprintf("%v://%v:%v", config.RadarrProtocol, config.RadarrHostname, config.RadarrPort), 0)
+	radarrConfig := starr.New(config.RadarrAPIKey, fmt.Sprintf("%v://%v:%v%v", config.RadarrProtocol, config.RadarrHostname, config.RadarrPort, config.RadarrBaseUrl), 0)
 	radarrServer := radarr.New(radarrConfig)
 
 	botInstance := bot.New(&config, b, radarrServer)
