@@ -108,7 +108,7 @@ Feel free to contribute to this Telegram bot by submitting pull requests, report
 ## Beer
 If you appreciate what we do, consider treating us to a refreshing beverage.
 
-<a href="https://paypal.me/telegramarrbots?country.x=EUR">
+<a href="https://paypal.me/telegramarrbots?country.x=EUR" target="_blank">
   <img src="pp.png?raw=true" alt="q1" title="donate" width="200">
 </a>
 
