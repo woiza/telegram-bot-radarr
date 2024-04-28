@@ -104,5 +104,14 @@ id - shows your Telegram user ID
 ## Contributing
 Feel free to contribute to this Telegram bot by submitting pull requests, reporting issues, or suggesting enhancements. Your contributions are welcome!
 
+
+## Beer
+If you appreciate what we do, consider treating us to a refreshing beverage.
+
+<a href="https://paypal.me/telegramarrbots?country.x=EUR">
+  <img src="pp.png?raw=true" alt="q1" title="donate" width="200">
+</a>
+
+
 ## License
 This Telegram bot is licensed under the [MIT License](https://opensource.org/license/mit/).
