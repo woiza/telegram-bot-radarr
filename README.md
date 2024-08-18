@@ -79,10 +79,11 @@ services:
             - RBOT_TELEGRAM_BOT_TOKEN=1460...:AAHlBW_mabVg...
             - RBOT_BOT_ALLOWED_USERIDS=123,987,-567 # Telegram user ID(s), Group IDs are negative
             - RBOT_BOT_MAX_ITEMS=10 # pagination
+            - RBOT_BOT_IGNORE_TAGS=false # true/false; true = bot will not ask for tags (useful with auto-tagging)
             - RBOT_RADARR_PROTOCOL=http # http or https
             - RBOT_RADARR_PORT=7878
             - RBOT_RADARR_HOSTNAME=192.168.2.2 # IP or hostname
-            - RBOT_RADARR_BASE_URL= # optional, e.g. /radarr, depending on radarr configuration
+            - RBOT_RADARR_BASE_URL=/radarr # optional, e.g. /radarr, depending on radarr configuration
             - RBOT_RADARR_API_KEY=1010d7...
 ```
 ### Commands for Botfather's /setcommands

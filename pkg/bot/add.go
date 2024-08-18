@@ -102,8 +102,8 @@ func (b *Bot) addMovie(update tgbotapi.Update) bool {
 		}
 		return b.showAddMovieRootFolders(command)
 	case AddMovieAddOptionsGoBack:
-		// Check if there are no tags
-		if len(command.allTags) == 0 {
+		// Check if there are no tags or tags should be ignored
+		if len(command.allTags) == 0 || b.Config.IgnoreTags {
 			// Check if there is only one root folder and one profile
 			if len(command.allRootFolders) == 1 && len(command.allProfiles) == 1 {
 				return b.showAddMovieSearchResults(command)
@@ -371,8 +371,8 @@ func (b *Bot) handleAddMovieRootFolder(update tgbotapi.Update, command *userAddM
 }
 
 func (b *Bot) showAddMovieTags(command *userAddMovie) bool {
-	// If there are no tags, skip this step
-	if len(command.allTags) == 0 {
+	// If there are no tags or tags should be ignored, skip this step
+	if len(command.allTags) == 0 || b.Config.IgnoreTags {
 		return b.showAddMovieAddOptions(command)
 	}
 	var tagsKeyboard [][]tgbotapi.InlineKeyboardButton

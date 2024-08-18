@@ -13,6 +13,7 @@ type Config struct {
 	TelegramBotToken string
 	AllowedChatIDs   map[int64]bool
 	MaxItems         int
+	IgnoreTags       bool
 	RadarrProtocol   string
 	RadarrHostname   string
 	RadarrPort       int
@@ -26,6 +27,7 @@ func LoadConfig() (Config, error) {
 	config.TelegramBotToken = os.Getenv("RBOT_TELEGRAM_BOT_TOKEN")
 	allowedUserIDs := os.Getenv("RBOT_BOT_ALLOWED_USERIDS")
 	botMaxItems := os.Getenv("RBOT_BOT_MAX_ITEMS")
+	botIgnoreTags := os.Getenv("RBOT_BOT_IGNORE_TAGS")
 	config.RadarrProtocol = os.Getenv("RBOT_RADARR_PROTOCOL")
 	config.RadarrHostname = os.Getenv("RBOT_RADARR_HOSTNAME")
 	radarrPort := os.Getenv("RBOT_RADARR_PORT")
@@ -41,6 +43,9 @@ func LoadConfig() (Config, error) {
 	}
 	if botMaxItems == "" {
 		return config, errors.New("RBOT_BOT_MAX_ITEMS is empty or not set")
+	}
+	if botIgnoreTags == "" {
+		return config, errors.New("RBOT_BOT_IGNORE_TAGS is empty or not set")
 	}
 	// Normalize and validate RBOT_RADARR_PROTOCOL
 	config.RadarrProtocol = strings.ToLower(config.RadarrProtocol)
@@ -63,6 +68,13 @@ func LoadConfig() (Config, error) {
 		return config, errors.New("RBOT_BOT_MAX_ITEMS is not a valid number")
 	}
 	config.MaxItems = maxItems
+
+	// Parsing RBOT_BOT_IGNORE_TAGS as a boolean
+	ignoreTags, err := strconv.ParseBool(botIgnoreTags)
+	if err != nil {
+		return config, errors.New("RBOT_BOT_IGNORE_TAGS is not a valid boolean")
+	}
+	config.IgnoreTags = ignoreTags
 
 	// Parsing RBOT_BOT_ALLOWED_USERIDS as a list of integers
 	userIDs := strings.Split(allowedUserIDs, ",")
