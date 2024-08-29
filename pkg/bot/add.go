@@ -339,9 +339,9 @@ func (b *Bot) showAddMovieRootFolders(command *userAddMovie) bool {
 		return b.showAddMovieTags(command)
 	}
 	var rootFolderKeyboard [][]tgbotapi.InlineKeyboardButton
-	for _, rootFolder := range command.allRootFolders {
+	for index, rootFolder := range command.allRootFolders {
 		row := []tgbotapi.InlineKeyboardButton{
-			tgbotapi.NewInlineKeyboardButtonData(rootFolder.Path, "ROOTFOLDER_"+rootFolder.Path),
+			tgbotapi.NewInlineKeyboardButtonData(rootFolder.Path, "ROOTFOLDER_"+strconv.Itoa(index)),
 		}
 		rootFolderKeyboard = append(rootFolderKeyboard, row)
 	}
@@ -365,7 +365,16 @@ func (b *Bot) showAddMovieRootFolders(command *userAddMovie) bool {
 }
 
 func (b *Bot) handleAddMovieRootFolder(update tgbotapi.Update, command *userAddMovie) bool {
-	command.rootFolder = strings.TrimPrefix(update.CallbackQuery.Data, "ROOTFOLDER_")
+	data := strings.TrimPrefix(update.CallbackQuery.Data, "ROOTFOLDER_")
+	index, err := strconv.Atoi(data)
+	if err != nil || index < 0 || index >= len(command.allRootFolders) {
+		msg := tgbotapi.NewMessage(command.chatID, "Invalid root folder selection.")
+		fmt.Println(err)
+		b.sendMessage(msg)
+		return false
+	}
+
+	command.rootFolder = command.allRootFolders[index].Path
 	b.setAddMovieState(command.chatID, command)
 	return b.showAddMovieTags(command)
 }
