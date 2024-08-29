@@ -29,7 +29,7 @@ type userAddMovie struct {
 	allProfiles     []*radarr.QualityProfile
 	profileID       int64
 	allRootFolders  []*radarr.RootFolder
-	rootFolder      string
+	rootFolder      *radarr.RootFolder
 	allTags         []*starr.Tag
 	selectedTags    []int
 	monitored       bool

@@ -267,7 +267,7 @@ func (b *Bot) handleAddMovieYes(update tgbotapi.Update, command *userAddMovie) b
 		return false
 	}
 	if len(rootFolders) == 1 {
-		command.rootFolder = rootFolders[0].Path
+		command.rootFolder = rootFolders[0]
 	}
 	if len(rootFolders) == 0 {
 		b.sendMessageWithEdit(command, "No root folder(s) found on your radarr server.\nAll commands have been cleared.")
@@ -339,9 +339,9 @@ func (b *Bot) showAddMovieRootFolders(command *userAddMovie) bool {
 		return b.showAddMovieTags(command)
 	}
 	var rootFolderKeyboard [][]tgbotapi.InlineKeyboardButton
-	for index, rootFolder := range command.allRootFolders {
+	for _, rootFolder := range command.allRootFolders {
 		row := []tgbotapi.InlineKeyboardButton{
-			tgbotapi.NewInlineKeyboardButtonData(rootFolder.Path, "ROOTFOLDER_"+strconv.Itoa(index)),
+			tgbotapi.NewInlineKeyboardButtonData(rootFolder.Path, "ROOTFOLDER_"+strconv.Itoa(int(rootFolder.ID))),
 		}
 		rootFolderKeyboard = append(rootFolderKeyboard, row)
 	}
@@ -366,15 +366,28 @@ func (b *Bot) showAddMovieRootFolders(command *userAddMovie) bool {
 
 func (b *Bot) handleAddMovieRootFolder(update tgbotapi.Update, command *userAddMovie) bool {
 	data := strings.TrimPrefix(update.CallbackQuery.Data, "ROOTFOLDER_")
-	index, err := strconv.Atoi(data)
-	if err != nil || index < 0 || index >= len(command.allRootFolders) {
+	id, err := strconv.Atoi(data)
+	if err != nil {
 		msg := tgbotapi.NewMessage(command.chatID, "Invalid root folder selection.")
 		fmt.Println(err)
 		b.sendMessage(msg)
 		return false
 	}
 
-	command.rootFolder = command.allRootFolders[index].Path
+	for folder := range command.allRootFolders {
+		if command.allRootFolders[folder].ID == int64(id) {
+			command.rootFolder = command.allRootFolders[folder]
+			break
+		}
+	}
+
+	if command.rootFolder == nil {
+		msg := tgbotapi.NewMessage(command.chatID, "Root folder not found.")
+		fmt.Println(err)
+		b.sendMessage(msg)
+		return false
+	}
+
 	b.setAddMovieState(command.chatID, command)
 	return b.showAddMovieTags(command)
 }
@@ -524,7 +537,7 @@ func (b *Bot) addMovieToLibrary(update tgbotapi.Update, command *userAddMovie) b
 		TmdbID:              command.movie.TmdbID,
 		Title:               command.movie.Title,
 		QualityProfileID:    command.profileID,
-		RootFolderPath:      command.rootFolder,
+		RootFolderPath:      command.rootFolder.Path,
 		AddOptions:          command.addMovieOptions,
 		Tags:                tagIDs,
 		Monitored:           command.monitored,
